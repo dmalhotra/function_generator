@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <omp.h>
 
 #include <boost/math/special_functions/chebyshev.hpp>
 
@@ -15,7 +16,7 @@ typedef Eigen::VectorXd vecxd;
 class FunctionGenerator {
   public:
     FunctionGenerator(double (*f)(double), double a, double b,
-                      double tol = 1e-10, int n = 8, double mw = 1e-15)
+                      double tol = 1e-10, int n = 12, double mw = 1e-15)
         : f_(f), a_(a), b_(b), tol_(tol), n_(n), mw_(mw) {
 
         init_vandermonde();
@@ -24,7 +25,7 @@ class FunctionGenerator {
         fit(a_, b_);
     };
 
-    int bisect(double x) {
+    inline int bisect(double x) {
         size_t n1 = 0;
         size_t n2 = lbs_.size();
         while (n2 - n1 > 1) {
@@ -138,7 +139,7 @@ int main(int argc, char *argv[]) {
     high_resolution_clock::time_point start = high_resolution_clock::now();
 
     double range[2] = {1e-10, 1000};
-    FunctionGenerator myFunc(log, range[0], range[1], 1e-10, 12);
+    FunctionGenerator myLog(log, range[0], range[1]);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -170,7 +171,7 @@ int main(int argc, char *argv[]) {
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
         for (auto i = 0; i < n_el; ++i) {
-            myFunc(x[i]);
+            myLog(x[i]);
         }
         high_resolution_clock::time_point finish = high_resolution_clock::now();
         duration<double> time_span =
@@ -178,8 +179,8 @@ int main(int argc, char *argv[]) {
 
         std::cout << "Chebyshev 'log' took " << time_span.count()
                   << " seconds.\n";
-        std::cout << "Efficiency: " << n_el / time_span.count()
-                  << " evaluations / sec\n";
+        std::cout << "Efficiency: " << n_el / time_span.count() / 1e6
+                  << " million evaluations / sec\n";
     }
 
     return 0;
