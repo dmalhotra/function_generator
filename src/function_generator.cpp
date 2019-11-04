@@ -7,9 +7,7 @@
 #include <random>
 #include <string>
 #include <vector>
-#include <omp.h>
 
-#include <boost/math/special_functions/chebyshev.hpp>
 
 typedef Eigen::VectorXd vecxd;
 
