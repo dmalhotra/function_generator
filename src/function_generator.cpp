@@ -20,41 +20,11 @@ class FunctionGenerator {
         VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V_);
 
         fit(a_, b_);
-    }
-
-    inline int bisect_bracketed(double x, int n1, int n2) {
-        while (n2 - n1 > 1) {
-            const int m = n1 + (n2 - n1) / 2;
-            if (x < lbs_[m])
-                n2 = m;
-            else
-                n1 = m;
-        }
-
-        return n1;
-    }
-
-    inline int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
-
-    inline int bisect_cache(double x) {
-        constexpr int half_width_cache = 4;
-        static int n1 = half_width_cache;
-        n1 -= half_width_cache;
-        n1 = std::max(n1, 0);
-        int n2 = n1 + 2 * half_width_cache;
-
-        while (lbs_[n1] > x)
-            n1 /= 2;
-        while (n2 < lbs_.size() && lbs_[n2] < x)
-            n2 *= 2;
-        n2 = std::min(n2, (int)lbs_.size());
-
-        n1 = bisect_bracketed(x, n1, n2);
-        return n1;
+        init_lookup();
     }
 
     double operator()(double x) {
-        int index = bisect_cache(x);
+        int index = bisect_lookup(x);
 
         double a = lbs_[index];
         double b = ubs_[index];
@@ -77,13 +47,14 @@ class FunctionGenerator {
     std::vector<double> lbs_;
     std::vector<double> ubs_;
     std::vector<vecxd> coeffs_;
+    std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
     inline double chbevl(double x, vecxd &c) {
         const double x2 = 2 * x;
         double c0 = c[c.size() - 2];
         double c1 = c[c.size() - 1];
 
-        for (int i = 3; i < c.size() + 1; ++i) {
+        for (int i = 3; i < n_ + 1; ++i) {
             double tmp = c0;
             c0 = c[c.size() - i] - c1;
             c1 = tmp + c1 * x2;
@@ -120,8 +91,6 @@ class FunctionGenerator {
 
     void fit(double a, double b) {
         double m = 0.5 * (a + b);
-        //        std::cout << "[" << a << ", " << b << "]\n";
-
         vecxd fx = get_chebyshev_nodes(a, b, n_);
 
         for (int i = 0; i < n_; ++i)
@@ -138,6 +107,57 @@ class FunctionGenerator {
             fit(a, m);
             fit(m, b);
         }
+    }
+
+    void init_lookup() {
+        constexpr int table_size = 512;
+        bounds_table_.resize(table_size);
+
+        // FIXME: This screws up sometimes. Probably an off by one error or
+        // rounding issue
+        for (int i = 0; i < table_size; ++i) {
+            double x0 = a_ + i * (b_ - a_) / table_size;
+            double x1 = a_ + (i + 1) * (b_ - a_) / table_size;
+            bounds_table_[i].first = bisect(x0);
+            bounds_table_[i].second = bisect(x1);
+        }
+    }
+
+    inline int bisect_bracketed(double x, int n1, int n2) {
+        while (n2 - n1 > 1) {
+            const int m = n1 + (n2 - n1) / 2;
+            if (x < lbs_[m])
+                n2 = m;
+            else
+                n1 = m;
+        }
+
+        return n1;
+    }
+
+    inline int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
+
+    inline int bisect_cache(double x) {
+        constexpr int half_width_cache = 4;
+        static int n1 = half_width_cache;
+        n1 -= half_width_cache;
+        n1 = std::max(n1, 0);
+        int n2 = n1 + 2 * half_width_cache;
+
+        while (lbs_[n1] > x)
+            n1 /= 2;
+        while (n2 < (int) lbs_.size() && lbs_[n2] < x)
+            n2 *= 2;
+        n2 = std::min(n2, (int)lbs_.size());
+
+        n1 = bisect_bracketed(x, n1, n2);
+        return n1;
+    }
+
+    int bisect_lookup(double x) {
+        int table_index = x / (b_ - a_) * bounds_table_.size();
+        auto bisect_bounds = bounds_table_[table_index];
+        return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
     }
 
     double standard_error(vecxd &coeffs) {
@@ -177,7 +197,7 @@ int main(int argc, char *argv[]) {
     {
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
-        for (auto i = 0; i < n_el; ++i) {
+        for (size_t i = 0; i < n_el; ++i) {
             log(x[i]);
         }
         high_resolution_clock::time_point finish = high_resolution_clock::now();
@@ -190,7 +210,7 @@ int main(int argc, char *argv[]) {
     {
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
-        for (auto i = 0; i < n_el; ++i) {
+        for (size_t i = 0; i < n_el; ++i) {
             myLog(x[i]);
         }
         high_resolution_clock::time_point finish = high_resolution_clock::now();
