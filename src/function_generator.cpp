@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-
 typedef Eigen::VectorXd vecxd;
 
 class FunctionGenerator {
@@ -21,13 +20,11 @@ class FunctionGenerator {
         VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V_);
 
         fit(a_, b_);
-    };
+    }
 
-    inline int bisect(double x) {
-        size_t n1 = 0;
-        size_t n2 = lbs_.size();
+    inline int bisect_bracketed(double x, int n1, int n2) {
         while (n2 - n1 > 1) {
-            const size_t m = n1 + (n2 - n1) / 2;
+            const int m = n1 + (n2 - n1) / 2;
             if (x < lbs_[m])
                 n2 = m;
             else
@@ -37,7 +34,9 @@ class FunctionGenerator {
         return n1;
     }
 
-    int bisect_cache(double x) {
+    inline int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
+
+    inline int bisect_cache(double x) {
         constexpr int half_width_cache = 4;
         static int n1 = half_width_cache;
         n1 -= half_width_cache;
@@ -50,14 +49,7 @@ class FunctionGenerator {
             n2 *= 2;
         n2 = std::min(n2, (int)lbs_.size());
 
-        while (n2 - n1 > 1) {
-            const int m = n1 + (n2 - n1) / 2;
-            if (x < lbs_[m])
-                n2 = m;
-            else
-                n1 = m;
-        }
-
+        n1 = bisect_bracketed(x, n1, n2);
         return n1;
     }
 
