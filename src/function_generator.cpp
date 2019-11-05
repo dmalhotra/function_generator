@@ -37,8 +37,33 @@ class FunctionGenerator {
         return n1;
     }
 
-    inline double operator()(double x) {
-        int index = bisect(x);
+    int bisect_cache(double x) {
+        constexpr int half_width_cache = 4;
+        static int n1 = half_width_cache;
+        n1 -= half_width_cache;
+        n1 = std::max(n1, 0);
+        int n2 = n1 + 2 * half_width_cache;
+
+        while (lbs_[n1] > x)
+            n1 /= 2;
+        while (n2 < lbs_.size() && lbs_[n2] < x)
+            n2 *= 2;
+        n2 = std::min(n2, (int)lbs_.size());
+
+        while (n2 - n1 > 1) {
+            const int m = n1 + (n2 - n1) / 2;
+            if (x < lbs_[m])
+                n2 = m;
+            else
+                n1 = m;
+        }
+
+        return n1;
+    }
+
+    double operator()(double x) {
+        int index = bisect_cache(x);
+
         double a = lbs_[index];
         double b = ubs_[index];
         double xinterp = 2 * (x - a) / (b - a) - 1.0;
@@ -151,6 +176,11 @@ int main(int argc, char *argv[]) {
         duration_cast<duration<double>>(finish - start);
 
     std::cout << "RNG generation took " << time_span.count() << " seconds.\n";
+
+    std::cout << "First 10 test value deltas\n";
+    for (auto i = 0; i < 10; ++i) {
+        std::cout << "\t" << myLog(x[i]) - log(x[i]) << std::endl;
+    }
 
     {
         high_resolution_clock::time_point start = high_resolution_clock::now();
