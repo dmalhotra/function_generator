@@ -1,26 +1,27 @@
-#include <algorithm>
-#include <chrono>
-#include <cmath>
 #include <eigen3/Eigen/Eigen>
 #include <eigen3/Eigen/LU>
+#include <functional>
 #include <iostream>
-#include <random>
-#include <string>
+#include <pybind11/pybind11.h>
 #include <vector>
 
 typedef Eigen::VectorXd vecxd;
 
+namespace py = pybind11;
+
 class FunctionGenerator {
   public:
-    FunctionGenerator(double (*f)(double), double a, double b,
+    FunctionGenerator(std::function<double(double)> &f, double a, double b,
                       double tol = 1e-10, int n = 12, double mw = 1e-15)
         : f_(f), a_(a), b_(b), tol_(tol), n_(n), mw_(mw) {
+        init();
+    }
 
-        init_vandermonde();
-        VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V_);
-
-        fit(a_, b_);
-        init_lookup();
+    FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-10,
+                      int n = 12, double mw = 1e-15)
+        : a_(a), b_(b), tol_(tol), n_(n), mw_(mw) {
+        f_ = [fpy](double x) { return fpy(x).cast<double>(); };
+        init();
     }
 
     double operator()(double x) {
@@ -34,7 +35,7 @@ class FunctionGenerator {
     }
 
   private:
-    double (*f_)(double);
+    std::function<double(double)> f_;
     const double a_;
     const double b_;
     const double tol_;
@@ -48,6 +49,14 @@ class FunctionGenerator {
     std::vector<double> ubs_;
     std::vector<vecxd> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
+
+    void init() {
+        init_vandermonde();
+        VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V_);
+
+        fit(a_, b_);
+        init_lookup();
+    }
 
     inline double chbevl(double x, vecxd &c) {
         const double x2 = 2 * x;
@@ -146,7 +155,7 @@ class FunctionGenerator {
 
         while (lbs_[n1] > x)
             n1 /= 2;
-        while (n2 < (int) lbs_.size() && lbs_[n2] < x)
+        while (n2 < (int)lbs_.size() && lbs_[n2] < x)
             n2 *= 2;
         n2 = std::min(n2, (int)lbs_.size());
 
@@ -169,59 +178,10 @@ class FunctionGenerator {
     }
 };
 
-int main(int argc, char *argv[]) {
-    using namespace std::chrono;
-    high_resolution_clock::time_point start = high_resolution_clock::now();
-
-    double range[2] = {1e-10, 1000};
-    FunctionGenerator myLog(log, range[0], range[1]);
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(range[0], range[1]);
-    size_t n_el = 100000000;
-    std::vector<double> x(n_el);
-    for (size_t i = 0; i < n_el; ++i)
-        x[i] = dis(gen);
-    high_resolution_clock::time_point finish = high_resolution_clock::now();
-    duration<double> time_span =
-        duration_cast<duration<double>>(finish - start);
-
-    std::cout << "RNG generation took " << time_span.count() << " seconds.\n";
-
-    std::cout << "First 10 test value deltas\n";
-    for (auto i = 0; i < 10; ++i) {
-        std::cout << "\t" << myLog(x[i]) - log(x[i]) << std::endl;
-    }
-
-    {
-        high_resolution_clock::time_point start = high_resolution_clock::now();
-
-        for (size_t i = 0; i < n_el; ++i) {
-            log(x[i]);
-        }
-        high_resolution_clock::time_point finish = high_resolution_clock::now();
-        duration<double> time_span =
-            duration_cast<duration<double>>(finish - start);
-
-        std::cout << "System 'log' took " << time_span.count() << " seconds.\n";
-    }
-
-    {
-        high_resolution_clock::time_point start = high_resolution_clock::now();
-
-        for (size_t i = 0; i < n_el; ++i) {
-            myLog(x[i]);
-        }
-        high_resolution_clock::time_point finish = high_resolution_clock::now();
-        duration<double> time_span =
-            duration_cast<duration<double>>(finish - start);
-
-        std::cout << "Chebyshev 'log' took " << time_span.count()
-                  << " seconds.\n";
-        std::cout << "Efficiency: " << n_el / time_span.count() / 1e6
-                  << " million evaluations / sec\n";
-    }
-
-    return 0;
+PYBIND11_MODULE(FunctionGenerator, m) {
+    py::class_<FunctionGenerator>(m, "FunctionGenerator")
+        .def(py::init<py::function, double, double, double, int, double>(),
+             py::arg("fpy") = "", py::arg("a") = 0.0, py::arg("b") = 1.0,
+             py::arg("tol") = 1e-10, py::arg("n") = 12, py::arg("mw") = 1e-15)
+        .def("__call__", &FunctionGenerator::operator());
 }
