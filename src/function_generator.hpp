@@ -25,44 +25,24 @@ class FunctionGenerator {
     FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-10,
                       int n = 12, double mw = 1e-15);
 
-    py::array_t<double> arr_call_old(py::array_t<double> x) {
-        py::buffer_info xbuf = x.request();
-        auto res = py::array_t<double>(xbuf.size);
-        py::buffer_info rbuf = res.request();
-        double *xptr = (double *)xbuf.ptr;
-        double *rptr = (double *)rbuf.ptr;
+    // py::array_t<double> arr_call_old(py::array_t<double> x) {
+    //     py::buffer_info xbuf = x.request();
+    //     auto res = py::array_t<double>(xbuf.size);
+    //     py::buffer_info rbuf = res.request();
+    //     double *xptr = (double *)xbuf.ptr;
+    //     double *rptr = (double *)rbuf.ptr;
 
-        for (auto i = 0; i < xbuf.size; ++i) {
-            rptr[i] = (*this)(xptr[i]);
-        }
+    //     for (auto i = 0; i < xbuf.size; ++i) {
+    //         rptr[i] = (*this)(xptr[i]);
+    //     }
 
-        return res;
-    };
+    //     return res;
+    // };
 
-    py::array_t<double> arr_call(py::array_t<double> x) {
-        auto xin = x.unchecked<1>();
-        auto res = py::array_t<double>(xin.shape(0));
-        auto out = res.mutable_unchecked<1>();
-
-        std::cout << "I'm here " << xin.shape(0) << std::endl;
-        for (ssize_t i = 0; i < xin.shape(0); ++i) {
-            out(i) = (*this)(xin(i));
-        }
-
-        return res;
-    };
-
+    py::array_t<double> arr_call(py::array_t<double> x);
 #endif
 
-    double operator()(double x) {
-        int index = bisect_lookup(x);
-
-        double a = lbs_[index];
-        double b = ubs_[index];
-        double xinterp = 2 * (x - a) / (b - a) - 1.0;
-
-        return chbevl(xinterp, coeffs_[index]);
-    };
+    double operator()(double x);
 
   private:
     std::function<double(double)> f_;
@@ -82,20 +62,8 @@ class FunctionGenerator {
 
     void init();
 
-    inline double chbevl(double x, std::vector<double> &c) {
-        const double x2 = 2 * x;
-        double c0 = c[c.size() - 2];
-        double c1 = c[c.size() - 1];
-
-        for (size_t i = 3; i < c.size() + 1; ++i) {
-            double tmp = c0;
-            c0 = c[c.size() - i] - c1;
-            c1 = tmp + c1 * x2;
-        }
-
-        return c0 + c1 * x;
-    };
-
+    double chbevl(double x, std::vector<double> &c);
+    
     void init_vandermonde();
 
     vecxd get_chebyshev_nodes(double lb, double ub, int order);

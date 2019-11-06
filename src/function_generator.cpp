@@ -4,6 +4,44 @@
 namespace py = pybind11;
 #endif
 
+#ifdef PYTHON_MODULE
+py::array_t<double> FunctionGenerator::arr_call(py::array_t<double> x) {
+    auto xin = x.unchecked<1>();
+    auto res = py::array_t<double>(xin.shape(0));
+    auto out = res.mutable_unchecked<1>();
+
+    for (ssize_t i = 0; i < xin.shape(0); ++i) {
+        out(i) = (*this)(xin(i));
+    }
+
+    return res;
+};
+#endif
+
+double FunctionGenerator::operator()(double x) {
+    int index = bisect_lookup(x);
+
+    double a = lbs_[index];
+    double b = ubs_[index];
+    double xinterp = 2 * (x - a) / (b - a) - 1.0;
+
+    return chbevl(xinterp, coeffs_[index]);
+};
+
+inline double FunctionGenerator::chbevl(double x, std::vector<double> &c) {
+    const double x2 = 2 * x;
+    double c0 = c[c.size() - 2];
+    double c1 = c[c.size() - 1];
+
+    for (size_t i = 3; i < c.size() + 1; ++i) {
+        double tmp = c0;
+        c0 = c[c.size() - i] - c1;
+        c1 = tmp + c1 * x2;
+    }
+
+    return c0 + c1 * x;
+};
+
 FunctionGenerator::FunctionGenerator(std::function<double(double)> &f, double a,
                                      double b, double tol, int n, double mw)
     : f_(f), a_(a), b_(b), tol_(tol), n_(n), mw_(mw) {
