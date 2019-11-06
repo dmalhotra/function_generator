@@ -25,17 +25,18 @@ double FunctionGenerator::operator()(double x) {
     double b = ubs_[index];
     double xinterp = 2 * (x - a) / (b - a) - 1.0;
 
-    return chbevl(xinterp, coeffs_[index]);
+    return chbevl(xinterp, &coeffs_[index*n_]);
 };
 
-inline double FunctionGenerator::chbevl(double x, std::vector<double> &c) {
+inline double FunctionGenerator::chbevl(double x, double *c) {
     const double x2 = 2 * x;
-    double c0 = c[c.size() - 2];
-    double c1 = c[c.size() - 1];
 
-    for (size_t i = 3; i < c.size() + 1; ++i) {
+    // Confusingly assign these backward
+    double c0 = c[1];
+    double c1 = c[0];
+    for (int i = 2; i < n_; ++i) {
         double tmp = c0;
-        c0 = c[c.size() - i] - c1;
+        c0 = c[i] - c1;
         c1 = tmp + c1 * x2;
     }
 
@@ -94,10 +95,14 @@ void FunctionGenerator::fit(double a, double b) {
     if (tail_energy < tol_ || (b - a) < mw_) {
         lbs_.push_back(a);
         ubs_.push_back(b);
-        std::vector<double> coefftmp(n_);
+        std::vector<double> coeffstmp(n_);
+        // Reverse list for cache performance reasons
         for (int i = 0; i < n_; ++i)
-            coefftmp[i] = coeffs[i];
-        coeffs_.push_back(coefftmp);
+            coeffstmp[i] = coeffs[n_ - i - 1];
+
+        // append to single coeffs_ vector, for cache reasons.
+        for (int i = 0; i < n_; ++i)
+            coeffs_.push_back(coeffstmp[i]);
     } else {
         fit(a, m);
         fit(m, b);

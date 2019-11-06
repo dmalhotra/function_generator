@@ -57,12 +57,12 @@ class FunctionGenerator {
 
     std::vector<double> lbs_;
     std::vector<double> ubs_;
-    std::vector<std::vector<double>> coeffs_;
+    std::vector<double> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
     void init();
 
-    double chbevl(double x, std::vector<double> &c);
+    double chbevl(double x, double *c);
     
     void init_vandermonde();
 
