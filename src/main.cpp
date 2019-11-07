@@ -40,24 +40,32 @@ int main(int argc, char *argv[]) {
     {
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
-        for (size_t i = 0; i < n_el; ++i) {
-            log(x[i]);
+        double sum = 0.0;
+        for (int irun = 0; irun < n_loops; ++irun) {
+            for (size_t i = 0; i < n_el; ++i) {
+                sum += log(x[i]);
+            }
         }
+        std::cout << sum << std::endl;
         high_resolution_clock::time_point finish = high_resolution_clock::now();
         duration<double> time_span =
             duration_cast<duration<double>>(finish - start);
 
+        std::cout << "Efficiency: " << n_el * n_loops / time_span.count() / 1e6
+                  << " million evaluations / sec\n";
         std::cout << "System 'log' took " << time_span.count() << " seconds.\n";
     }
 
     {
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
+        double sum = 0.0;
         for (int irun = 0; irun < n_loops; ++irun) {
             for (size_t i = 0; i < n_el; ++i) {
-                myLog(x[i]);
+                sum += myLog(x[i]);
             }
         }
+        std::cout << sum << std::endl;
         high_resolution_clock::time_point finish = high_resolution_clock::now();
         duration<double> time_span =
             duration_cast<duration<double>>(finish - start);
