@@ -110,7 +110,7 @@ void FunctionGenerator::fit(double a, double b) {
 }
 
 void FunctionGenerator::init_lookup() {
-    constexpr int table_size = 512;
+    constexpr int table_size = 2048;
     bounds_table_.resize(table_size);
 
     // FIXME: This screws up sometimes. Probably an off by one error or
