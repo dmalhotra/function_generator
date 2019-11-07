@@ -1,13 +1,15 @@
+CXX = g++
+
 FunctionGeneratorPython : function_generator.cpp function_generator.hpp
-	c++ -g -O2 -march=native -ffast-math -Wall -shared -std=c++11 -fPIC -DPYTHON_MODULE `python3 -m pybind11 --includes` \
+	$(CXX) -g -O2 -march=native -ffast-math -Wall -shared -std=c++11 -fPIC -DPYTHON_MODULE `python3 -m pybind11 --includes` \
 		function_generator.cpp -o FunctionGenerator`python3-config --extension-suffix` -fvisibility=hidden
 
 libFunctionGenerator.so : function_generator.cpp function_generator.hpp
-	c++ -I$(CONDA_PREFIX)/include -g -O2 -march=native -ffast-math -Wall -shared -std=c++11 -fPIC function_generator.cpp -o libFunctionGenerator.so
+	$(CXX) -I$(CONDA_PREFIX)/include -g -O2 -march=native -ffast-math -Wall -shared -std=c++11 -fPIC function_generator.cpp -o libFunctionGenerator.so
 
 main : function_generator.cpp function_generator.hpp main.cpp libFunctionGenerator.so
 	make libFunctionGenerator.so
-	c++ -O2 -Wall -g -ffast-math -march=native -I$(CONDA_PREFIX)/include main.cpp libFunctionGenerator.so -o main
+	$(CXX) -O2 -Wall -g -ffast-math -march=native -I$(CONDA_PREFIX)/include main.cpp libFunctionGenerator.so -o main
 
 all :
 	make FunctionGeneratorPython
