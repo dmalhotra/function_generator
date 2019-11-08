@@ -5,7 +5,7 @@ FunctionGeneratorPython : function_generator.cpp function_generator.hpp
 		function_generator.cpp -o FunctionGenerator`python3-config --extension-suffix` -fvisibility=hidden
 
 main : function_generator.hpp main.cpp
-	$(CXX) -O3 -Wall -g -ffast-math -march=native -I$(CONDA_PREFIX)/include main.cpp -o main
+	$(CXX) -Wall -g -O3 -ffast-math -march=native -I$(CONDA_PREFIX)/include main.cpp -o main -lgsl
 
 all :
 	make FunctionGeneratorPython
