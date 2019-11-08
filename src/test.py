@@ -4,30 +4,32 @@ import numpy as np
 from FunctionGenerator import FunctionGenerator as FG
 # from function_generator import standard_error_model, relative_error_model
 import time
-from scipy.special import struve, y0, hankel1
+from scipy.special import struve, y0, hankel1, k0
 import numba
 import os
 
 cpu_count = 1
 
-n = 10000000
+n = 100000000
 approx_range = [1e-10, 1000]
 test_range = [1e-10, 999]
 tol = 1e-12
-order = 12
+order = 8
 
 # functions to test evaluation of
 true_funcs = [
+    lambda x: k0(x),
     lambda x: y0(x),
     # lambda x: hankel1(0, x),
     lambda x: np.log(x),
     lambda x: 1/x**8,
 ]
 true_func_disp = [
-    'y0(x); using standard error model, relative error not guaranteed',
+    'k0(x)',
+    'y0(x)',
     # 'hankel1(0, x); Using standard error model, relative error not guaranteed',
-    'np.log(x); Using standard error model, relative error not guaranteed',
-    '1/x**8; Using relative error model, relative error should be good',
+    'np.log(x)',
+    '1/x**8',
 ]
 # error_models = [
 #     standard_error_model,
@@ -55,11 +57,10 @@ print('    Relative error model means normalization by value')
 for func, disp in zip(true_funcs, true_func_disp):
     print('\n    Function is: ', disp)
 
-    approx_func = FG(func, approx_range[0], approx_range[1], tol, order)
+    approx_func = FG(func, approx_range[0], approx_range[1], tol)
     st = time.time()
     fa = approx_func(xtest)
     approx_func_time1 = time.time()-st
 
     print('        Approx time (ms):   {:0.1f}'.format(approx_func_time1*1000))
     print('        Points/Sec/Core, Millions:       {:0.1f}'.format(n/approx_func_time1/1000000/cpu_count))
-

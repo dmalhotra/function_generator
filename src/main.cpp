@@ -8,15 +8,15 @@
 #include "function_generator.hpp"
 #include <omp.h>
 
+template class FunctionGenerator<8, 4096>;
+
 int main(int argc, char *argv[]) {
     using namespace std::chrono;
     high_resolution_clock::time_point start = high_resolution_clock::now();
 
-    int order = (argc == 1) ? 12 : atoi(argv[1]);
-
     double range[2] = {1e-10, 1000};
     std::function<double(double)> inFunc = log;
-    FunctionGenerator myLog(inFunc, range[0], range[1], 1E-12, order);
+    FunctionGenerator<7, 4096> myLog(inFunc, range[0], range[1], 1E-12);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -38,12 +38,14 @@ int main(int argc, char *argv[]) {
     }
 
     {
+        std::vector<double> res(x.size());
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
         double sum = 0.0;
         for (int irun = 0; irun < n_loops; ++irun) {
             for (size_t i = 0; i < n_el; ++i) {
-                sum += log(x[i]);
+                res[i] = log(x[i]);
+                sum += res[i];
             }
         }
         std::cout << sum << std::endl;
@@ -57,12 +59,14 @@ int main(int argc, char *argv[]) {
     }
 
     {
+        std::vector<double> res(x.size());
         high_resolution_clock::time_point start = high_resolution_clock::now();
 
         double sum = 0.0;
         for (int irun = 0; irun < n_loops; ++irun) {
             for (size_t i = 0; i < n_el; ++i) {
-                sum += myLog(x[i]);
+                res[i] = myLog(x[i]);
+                sum += res[i];
             }
         }
         std::cout << sum << std::endl;

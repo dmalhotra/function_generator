@@ -9,48 +9,60 @@
 #include <pybind11/pybind11.h>
 #endif
 #include <vector>
+
 typedef Eigen::VectorXd vecxd;
 
 #ifdef PYTHON_MODULE
 namespace py = pybind11;
 #endif
 
-class FunctionGenerator {
-
+template <int n_, int table_size_> class FunctionGenerator {
   public:
     FunctionGenerator(std::function<double(double)> &f, double a, double b,
-                      double tol = 1E-10, int n = 12, double mw = 1E-15);
+                      double tol = 1E-12, double mw = 1E-15)
+        : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
+          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_) {
+        init();
+    };
 
 #ifdef PYTHON_MODULE
-    FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-10,
-                      int n = 12, double mw = 1e-15);
+    FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-12,
+                      double mw = 1e-15)
+        : a_(a), b_(b), tol_(tol), mw_(mw),
+          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_) {
+        f_ = [fpy](double x) { return fpy(x).cast<double>(); };
+        init();
+    };
 
-    // py::array_t<double> arr_call_old(py::array_t<double> x) {
-    //     py::buffer_info xbuf = x.request();
-    //     auto res = py::array_t<double>(xbuf.size);
-    //     py::buffer_info rbuf = res.request();
-    //     double *xptr = (double *)xbuf.ptr;
-    //     double *rptr = (double *)rbuf.ptr;
+    inline py::array_t<double> arr_call(py::array_t<double> x) {
+        auto xin = x.unchecked<1>();
+        auto res = py::array_t<double>(xin.shape(0));
+        auto out = res.mutable_unchecked<1>();
 
-    //     for (auto i = 0; i < xbuf.size; ++i) {
-    //         rptr[i] = (*this)(xptr[i]);
-    //     }
+        for (int i = 0; i < xin.shape(0); ++i) {
+            out(i) = (*this)(xin(i));
+        }
 
-    //     return res;
-    // };
-
-    py::array_t<double> arr_call(py::array_t<double> x);
+        return res;
+    };
 #endif
 
-    double operator()(double x);
+    inline double operator()(double x) {
+        const int index = bisect_lookup(x);
+        const double a = lbs_[index];
+        const double b = ubs_[index];
+        const double xinterp = 2 * (x - a) / (b - a) - 1.0;
+
+        return chbevl(xinterp, &coeffs_[index * n_]);
+    };
 
   private:
     std::function<double(double)> f_;
     const double a_;
     const double b_;
     const double tol_;
-    const int n_;
     const double mw_;
+    const double scale_factor_;
 
     Eigen::MatrixXd V_;
     Eigen::PartialPivLU<Eigen::MatrixXd> VLU_;
@@ -60,18 +72,94 @@ class FunctionGenerator {
     std::vector<double> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
-    void init();
+    inline double chbevl(const double x, const double *c) {
+        const double x2 = 2 * x;
 
-    double chbevl(double x, double *c);
-    
-    void init_vandermonde();
+        // Confusingly assign these backward
+        double c0 = c[1];
+        double c1 = c[0];
+        for (int i = 2; i < n_; ++i) {
+            double tmp = c0;
+            c0 = c[i] - c1;
+            c1 = tmp + c1 * x2;
+        }
 
-    vecxd get_chebyshev_nodes(double lb, double ub, int order);
+        return c0 + c1 * x;
+    };
 
-    void fit(double a, double b);
-    void init_lookup();
+    void init() {
+        init_vandermonde();
+        VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V_);
 
-    int bisect_bracketed(double x, int n1, int n2) {
+        fit(a_, b_);
+        init_lookup();
+    }
+
+    void init_vandermonde() {
+        V_.resize(n_, n_);
+        vecxd x = get_chebyshev_nodes(-1, 1, n_);
+        for (int j = 0; j < n_; ++j) {
+            V_(0, j) = 1;
+            V_(1, j) = x(j);
+        }
+
+        for (int i = 2; i < n_; ++i) {
+            for (int j = 0; j < n_; ++j) {
+                V_(i, j) = V_(i - 1, j) * 2 * x(j) - V_(i - 2, j);
+            }
+        }
+        V_ = V_.transpose().eval();
+    }
+
+    vecxd get_chebyshev_nodes(double lb, double ub, int order) {
+        vecxd res(order);
+        for (int k = 0; k < order; ++k)
+            res[order - k - 1] =
+                0.5 * (lb + ub) +
+                0.5 * (ub - lb) * cos(M_PI * (k + 0.5) / order);
+
+        return res;
+    }
+
+    void fit(double a, double b) {
+        double m = 0.5 * (a + b);
+        vecxd fx = get_chebyshev_nodes(a, b, n_);
+
+        for (int i = 0; i < n_; ++i)
+            fx[i] = f_(fx[i]);
+
+        vecxd coeffs = VLU_.solve(fx);
+        double tail_energy = standard_error(coeffs);
+
+        if (tail_energy < tol_ || (b - a) < mw_) {
+            lbs_.push_back(a);
+            ubs_.push_back(b);
+            std::vector<double> coeffstmp(n_);
+            // Reverse list for cache performance reasons
+            for (int i = 0; i < n_; ++i)
+                coeffstmp[i] = coeffs[n_ - i - 1];
+
+            // append to single coeffs_ vector, for cache reasons.
+            for (int i = 0; i < n_; ++i)
+                coeffs_.push_back(coeffstmp[i]);
+        } else {
+            fit(a, m);
+            fit(m, b);
+        }
+    }
+
+    void init_lookup() {
+        // FIXME: This screws up sometimes. Probably an off by one error or
+        // rounding issue
+        for (int i = 0; i < table_size_; ++i) {
+            double x0 = a_ + i * (b_ - a_) / table_size_;
+            double x1 = a_ + (i + 1) * (b_ - a_) / table_size_;
+            bounds_table_[i].first = bisect(x0);
+            bounds_table_[i].second = bisect(x1);
+        }
+    }
+
+    inline int bisect_bracketed(double x, int n1, int n2) {
         while (n2 - n1 > 1) {
             const int m = n1 + (n2 - n1) / 2;
             if (x < lbs_[m])
@@ -83,27 +171,10 @@ class FunctionGenerator {
         return n1;
     };
 
-    int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
+    inline int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
 
-    int bisect_cache(double x) {
-        constexpr int half_width_cache = 4;
-        static int n1 = half_width_cache;
-        n1 -= half_width_cache;
-        n1 = std::max(n1, 0);
-        int n2 = n1 + 2 * half_width_cache;
-
-        while (lbs_[n1] > x)
-            n1 /= 2;
-        while (n2 < (int)lbs_.size() && lbs_[n2] < x)
-            n2 *= 2;
-        n2 = std::min(n2, (int)lbs_.size());
-
-        n1 = bisect_bracketed(x, n1, n2);
-        return n1;
-    };
-
-    int bisect_lookup(double x) {
-        int table_index = x / (b_ - a_) * bounds_table_.size();
+    inline int bisect_lookup(double x) {
+        int table_index = x * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
     };
