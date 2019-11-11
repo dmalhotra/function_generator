@@ -16,20 +16,61 @@ typedef Eigen::VectorXd vecxd;
 namespace py = pybind11;
 #endif
 
+namespace FGError {
+enum ErrorModel { standard, relative };
+
+double standard_error(vecxd &coeffs) {
+    double maxcoeff = 0.0;
+    int n = coeffs.size();
+    for (auto i = n - 2; i < n; ++i)
+        maxcoeff = std::max(fabs(coeffs[i]), maxcoeff);
+
+    return maxcoeff / std::max(1.0, fabs(coeffs[0]));
+};
+
+double relative_error(vecxd &coeffs) {
+    double maxcoeff = 0.0;
+    int n = coeffs.size();
+    for (auto i = n - 2; i < n; ++i)
+        maxcoeff = std::max(fabs(coeffs[i]), maxcoeff);
+
+    return maxcoeff / fabs(coeffs[0]);
+}
+
+double calc_error(vecxd &coeffs, ErrorModel error_model) {
+    switch (error_model) {
+    case relative:
+        return FGError::relative_error(coeffs);
+    case standard:
+        return FGError::standard_error(coeffs);
+    default:
+        return standard_error(coeffs);
+    }
+}
+
+} // namespace FGError
+
 template <int n_, int table_size_> class FunctionGenerator {
   public:
-    FunctionGenerator(std::function<double(double)> &f, double a, double b,
-                      double tol = 1E-12, double mw = 1E-15)
+    FunctionGenerator(
+        std::function<double(double)> &f, double a, double b,
+        double tol = 1E-12, double mw = 1E-15,
+        FGError::ErrorModel error_model = FGError::ErrorModel::relative)
         : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_) {
+          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
+          error_model_(error_model) {
+
         init();
     };
 
 #ifdef PYTHON_MODULE
-    FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-12,
-                      double mw = 1e-15)
+    FunctionGenerator(
+        py::function fpy, double a, double b, double tol = 1e-12,
+        double mw = 1e-15,
+        FGError::ErrorModel error_model = FGError::ErrorModel::relative)
         : a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_) {
+          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
+          error_model_(error_model) {
         f_ = [fpy](double x) { return fpy(x).cast<double>(); };
         init();
     };
@@ -72,19 +113,22 @@ template <int n_, int table_size_> class FunctionGenerator {
     std::vector<double> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
+    const FGError::ErrorModel error_model_;
+
+
     double chbevl(const double x, const double *c) {
         const double x2 = 2 * x;
 
         // Confusingly assign these backward
-        double c0 = c[1];
-        double c1 = c[0];
+        double c0 = c[0];
+        double c1 = c[1];
         for (int i = 2; i < n_; ++i) {
-            double tmp = c0;
-            c0 = c[i] - c1;
-            c1 = tmp + c1 * x2;
+            double tmp = c1;
+            c1 = c[i] - c0;
+            c0 = tmp + c0 * x2;
         }
 
-        return c0 + c1 * x;
+        return c1 + c0 * x;
     };
 
     void init() {
@@ -129,7 +173,7 @@ template <int n_, int table_size_> class FunctionGenerator {
             fx[i] = f_(fx[i]);
 
         vecxd coeffs = VLU_.solve(fx);
-        double tail_energy = standard_error(coeffs);
+        double tail_energy = FGError::calc_error(coeffs, error_model_);
 
         if (tail_energy < tol_ || (b - a) < mw_) {
             lbs_.push_back(a);
@@ -177,14 +221,6 @@ template <int n_, int table_size_> class FunctionGenerator {
         int table_index = x * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
-    };
-
-    double standard_error(vecxd &coeffs) {
-        double maxcoeff = 0.0;
-        for (auto i = n_ - 2; i < n_; ++i)
-            maxcoeff = std::max(fabs(coeffs[i]), maxcoeff);
-
-        return maxcoeff / std::max(1.0, fabs(coeffs[0]));
     };
 };
 
