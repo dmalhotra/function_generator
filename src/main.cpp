@@ -104,15 +104,15 @@ int main(int argc, char *argv[]) {
 
     std::cout << "RNG generation took " << time_span.count() << " seconds.\n";
 
-    std::vector<func_t> funcs = {
-        {"log", 1e-15, 1000, log},
-        {"gsl_sf_bessel_J0", 0, 100, gsl_sf_bessel_J0},
-        {"gsl_sf_bessel_I0", 0, 100, gsl_sf_bessel_I0},
-        {"std::erfc", 0, 5, [](double x) { return std::erfc(x); }},
-        {"std::erf", 0, 5, [](double x) { return std::erf(x); }},
-        {"gsl_sf_airy_Ai", -20, 5,
-         [](double x) { return gsl_sf_airy_Ai(x, GSL_PREC_DOUBLE); }},
-        {"sin", 0, 2 * M_PI, sin}};
+    std::vector<func_t> funcs{
+        func_t{"log", 1e-15, 1000, [](double x) { return log(x); }},
+        func_t{"gsl_sf_bessel_J0", 0, 100, gsl_sf_bessel_J0},
+        func_t{"gsl_sf_bessel_I0", 0, 100, gsl_sf_bessel_I0},
+        func_t{"std::erfc", 0, 5, [](double x) { return std::erfc(x); }},
+        func_t{"std::erf", 0, 5, [](double x) { return std::erf(x); }},
+        func_t{"gsl_sf_airy_Ai", -20, 5,
+               [](double x) { return gsl_sf_airy_Ai(x, GSL_PREC_DOUBLE); }},
+        func_t{"sin", 0, 2 * M_PI, [](double x) { return sin(x); }}};
 
     for (auto func : funcs) {
         std::cout << std::endl << func.name << std::endl;
