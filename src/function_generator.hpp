@@ -57,8 +57,8 @@ template <int n_, int table_size_> class FunctionGenerator {
         double tol = 1E-12, double mw = 1E-15,
         FGError::ErrorModel error_model = FGError::ErrorModel::relative)
         : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
-          error_model_(error_model) {
+          scale_factor_(table_size_ / (b_ - a_)),
+          bounds_table_(table_size_ + 1), error_model_(error_model) {
 
         init();
     };
@@ -69,8 +69,8 @@ template <int n_, int table_size_> class FunctionGenerator {
         double mw = 1e-15,
         FGError::ErrorModel error_model = FGError::ErrorModel::relative)
         : a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
-          error_model_(error_model) {
+          scale_factor_(table_size_ / (b_ - a_)),
+          bounds_table_(table_size_ + 1), error_model_(error_model) {
         f_ = [fpy](double x) { return fpy(x).cast<double>(); };
         init();
     };
@@ -119,7 +119,6 @@ template <int n_, int table_size_> class FunctionGenerator {
     double chbevl(const double x, const double *c) {
         const double x2 = 2 * x;
 
-        // Confusingly assign these backward
         double c0 = c[0];
         double c1 = c[1];
         for (int i = 2; i < n_; ++i) {
@@ -195,12 +194,13 @@ template <int n_, int table_size_> class FunctionGenerator {
     void init_lookup() {
         // FIXME: This screws up sometimes. Probably an off by one error or
         // rounding issue
-        for (int i = 0; i < table_size_; ++i) {
+        for (int i = 0; i < table_size_ - 1; ++i) {
             double x0 = a_ + i * (b_ - a_) / table_size_;
             double x1 = a_ + (i + 1) * (b_ - a_) / table_size_;
             bounds_table_[i].first = bisect(x0);
             bounds_table_[i].second = bisect(x1);
         }
+        bounds_table_.back() = std::make_pair(lbs_.size() - 1, lbs_.size());
     }
 
     int bisect_bracketed(double x, int n1, int n2) {
@@ -218,7 +218,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
 
     int bisect_lookup(double x) {
-        int table_index = x * scale_factor_;
+        int table_index = (x - lbs_[0]) * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
     };
