@@ -108,8 +108,8 @@ int main(int argc, char *argv[]) {
         func_t{"log", 1e-15, 1000, [](double x) { return log(x); }},
         func_t{"gsl_sf_bessel_J0", 0, 100, gsl_sf_bessel_J0},
         func_t{"gsl_sf_bessel_I0", 0, 100, gsl_sf_bessel_I0},
-        func_t{"std::erfc", 0, 5, [](double x) { return std::erfc(x); }},
-        func_t{"std::erf", 0, 5, [](double x) { return std::erf(x); }},
+        func_t{"std::erfc", -2, 2, [](double x) { return std::erfc(x); }},
+        func_t{"std::erf", -2, 2, [](double x) { return std::erf(x); }},
         func_t{"gsl_sf_airy_Ai", -20, 5,
                [](double x) { return gsl_sf_airy_Ai(x, GSL_PREC_DOUBLE); }},
         func_t{"sin", 0, 2 * M_PI, [](double x) { return sin(x); }}};

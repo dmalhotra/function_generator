@@ -16,10 +16,13 @@ typedef Eigen::VectorXd vecxd;
 namespace py = pybind11;
 #endif
 
+
+//! Namespace for error calculation helper functions.
 namespace FGError {
+//! Model used to calculate error in approximation the input function.
 enum ErrorModel { standard, relative };
 
-double standard_error(vecxd &coeffs) {
+inline double standard_error(vecxd &coeffs) {
     double maxcoeff = 0.0;
     int n = coeffs.size();
     for (auto i = n - 2; i < n; ++i)
@@ -28,7 +31,7 @@ double standard_error(vecxd &coeffs) {
     return maxcoeff / std::max(1.0, fabs(coeffs[0]));
 };
 
-double relative_error(vecxd &coeffs) {
+inline double relative_error(vecxd &coeffs) {
     double maxcoeff = 0.0;
     int n = coeffs.size();
     for (auto i = n - 2; i < n; ++i)
@@ -37,7 +40,7 @@ double relative_error(vecxd &coeffs) {
     return maxcoeff / fabs(coeffs[0]);
 }
 
-double calc_error(vecxd &coeffs, ErrorModel error_model) {
+inline double calc_error(vecxd &coeffs, ErrorModel error_model) {
     switch (error_model) {
     case relative:
         return FGError::relative_error(coeffs);
@@ -50,8 +53,38 @@ double calc_error(vecxd &coeffs, ErrorModel error_model) {
 
 } // namespace FGError
 
+//! Class to approximate functions on a given range by sub-divisions of
+//! Chebyshev polynomial expansions.
+/*!
+
+This is a template "header-only" class which aims to be virtually
+indistinguishable, but often orders of magnitude faster, than special functions
+on a given range. This goal is accomplished by recursively dividing the input
+function into sub-regions which are fit to Chebyshev polynomials of a given
+order until the error is within some given tolerance.
+
+To aid in optimization for C++, this class is provided as a template library,
+which can result in a 50% performance increase vs. a shared library
+implementation. See README for more information.
+
+@tparam n_ Order of expansion to use for Chebyshev subunits
+@tparam table_size_ Number of elements in lookup table which is used to assist
+in finding the appropriate Chebyshev subunit.
+*/
 template <int n_, int table_size_> class FunctionGenerator {
   public:
+    //!  Default constructor for FunctionGenerator.
+    //!
+    /*!
+
+    @param f One dimensional function to approximate.
+    @param a Lower bound of function domain to approximate.
+    @param b Upper bound of function domain to approximate.
+    @param tol Desired accuracy of approximation according to error_model.
+    @param mw Minimum width of a sub-division.
+    @param error_model Which model to use to calculate error for 'tol'
+    parameter.
+    */
     FunctionGenerator(
         std::function<double(double)> &f, double a, double b,
         double tol = 1E-12, double mw = 1E-15,
@@ -114,7 +147,6 @@ template <int n_, int table_size_> class FunctionGenerator {
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
     const FGError::ErrorModel error_model_;
-
 
     double chbevl(const double x, const double *c) {
         const double x2 = 2 * x;
