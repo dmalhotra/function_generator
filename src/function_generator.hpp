@@ -16,11 +16,10 @@ typedef Eigen::VectorXd vecxd;
 namespace py = pybind11;
 #endif
 
-
 //! Namespace for error calculation helper functions.
 namespace FGError {
 //! Model used to calculate error in approximation the input function.
-enum ErrorModel { standard, relative };
+enum ErrorModel : uint16_t { standard = 0, relative = 1};
 
 inline double standard_error(vecxd &coeffs) {
     double maxcoeff = 0.0;
@@ -88,10 +87,10 @@ template <int n_, int table_size_> class FunctionGenerator {
     FunctionGenerator(
         std::function<double(double)> &f, double a, double b,
         double tol = 1E-12, double mw = 1E-15,
-        FGError::ErrorModel error_model = FGError::ErrorModel::relative)
+        FGError::ErrorModel error_model = FGError::ErrorModel::standard)
         : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)),
-          bounds_table_(table_size_ + 1), error_model_(error_model) {
+          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
+          error_model_(error_model) {
 
         init();
     };
@@ -100,10 +99,10 @@ template <int n_, int table_size_> class FunctionGenerator {
     FunctionGenerator(
         py::function fpy, double a, double b, double tol = 1e-12,
         double mw = 1e-15,
-        FGError::ErrorModel error_model = FGError::ErrorModel::relative)
+        uint16_t error_model = FGError::ErrorModel::standard)
         : a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)),
-          bounds_table_(table_size_ + 1), error_model_(error_model) {
+          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
+          error_model_((FGError::ErrorModel) error_model) {
         f_ = [fpy](double x) { return fpy(x).cast<double>(); };
         init();
     };
@@ -124,7 +123,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     double operator()(double x) {
         const int index = bisect_lookup(x);
         const double a = lbs_[index];
-        const double b = ubs_[index];
+        const double b = lbs_[index + 1];
         const double xinterp = 2 * (x - a) / (b - a) - 1.0;
 
         return chbevl(xinterp, &coeffs_[index * n_]);
@@ -142,7 +141,6 @@ template <int n_, int table_size_> class FunctionGenerator {
     Eigen::PartialPivLU<Eigen::MatrixXd> VLU_;
 
     std::vector<double> lbs_;
-    std::vector<double> ubs_;
     std::vector<double> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
@@ -168,6 +166,13 @@ template <int n_, int table_size_> class FunctionGenerator {
 
         fit(a_, b_);
         init_lookup();
+
+        // Add one element to bounds_table to handle call on largest upper bound
+        bounds_table_.push_back(std::make_pair(lbs_.size() - 1, lbs_.size()));
+
+        // Fixup lbs_ to include last upper bound in case we are in last
+        // subdivision for bisect_lookup
+        lbs_.push_back(b_);
     }
 
     void init_vandermonde() {
@@ -208,7 +213,6 @@ template <int n_, int table_size_> class FunctionGenerator {
 
         if (tail_energy < tol_ || (b - a) < mw_) {
             lbs_.push_back(a);
-            ubs_.push_back(b);
             std::vector<double> coeffstmp(n_);
             // Reverse list for cache performance reasons
             for (int i = 0; i < n_; ++i)
@@ -224,15 +228,12 @@ template <int n_, int table_size_> class FunctionGenerator {
     }
 
     void init_lookup() {
-        // FIXME: This screws up sometimes. Probably an off by one error or
-        // rounding issue
-        for (int i = 0; i < table_size_ - 1; ++i) {
+        for (int i = 0; i < table_size_; ++i) {
             double x0 = a_ + i * (b_ - a_) / table_size_;
             double x1 = a_ + (i + 1) * (b_ - a_) / table_size_;
             bounds_table_[i].first = bisect(x0);
             bounds_table_[i].second = bisect(x1);
         }
-        bounds_table_.back() = std::make_pair(lbs_.size() - 1, lbs_.size());
     }
 
     int bisect_bracketed(double x, int n1, int n2) {
@@ -250,7 +251,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
 
     int bisect_lookup(double x) {
-        int table_index = (x - lbs_[0]) * scale_factor_;
+        int table_index = (x - a_) * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
     };
