@@ -34,7 +34,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         init();
     };
 
-    inline py::array_t<double> arr_call(py::array_t<double> x) {
+    py::array_t<double> arr_call(py::array_t<double> x) {
         auto xin = x.unchecked<1>();
         auto res = py::array_t<double>(xin.shape(0));
         auto out = res.mutable_unchecked<1>();
@@ -47,7 +47,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     };
 #endif
 
-    inline double operator()(double x) {
+    double operator()(double x) {
         const int index = bisect_lookup(x);
         const double a = lbs_[index];
         const double b = ubs_[index];
@@ -72,7 +72,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     std::vector<double> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
-    inline double chbevl(const double x, const double *c) {
+    double chbevl(const double x, const double *c) {
         const double x2 = 2 * x;
 
         // Confusingly assign these backward
@@ -159,7 +159,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         }
     }
 
-    inline int bisect_bracketed(double x, int n1, int n2) {
+    int bisect_bracketed(double x, int n1, int n2) {
         while (n2 - n1 > 1) {
             const int m = n1 + (n2 - n1) / 2;
             if (x < lbs_[m])
@@ -171,9 +171,9 @@ template <int n_, int table_size_> class FunctionGenerator {
         return n1;
     };
 
-    inline int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
+    int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
 
-    inline int bisect_lookup(double x) {
+    int bisect_lookup(double x) {
         int table_index = x * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
