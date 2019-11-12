@@ -137,8 +137,6 @@ template <int n_, int table_size_> class FunctionGenerator {
     const double mw_;
     const double scale_factor_;
 
-    Eigen::PartialPivLU<Eigen::MatrixXd> VLU_;
-
     std::vector<double> lbs_;
     std::vector<double> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
@@ -161,9 +159,10 @@ template <int n_, int table_size_> class FunctionGenerator {
 
     void init() {
         Eigen::MatrixXd V = calc_vandermonde();
-        VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V);
+        Eigen::PartialPivLU<Eigen::MatrixXd> VLU =
+            Eigen::PartialPivLU<Eigen::MatrixXd>(V);
 
-        fit(a_, b_);
+        fit(a_, b_, VLU);
         init_lookup();
 
         // Add one element to bounds_table to handle call on largest upper bound
@@ -202,14 +201,14 @@ template <int n_, int table_size_> class FunctionGenerator {
         return res;
     }
 
-    void fit(double a, double b) {
+    void fit(double a, double b, Eigen::PartialPivLU<Eigen::MatrixXd> &VLU) {
         double m = 0.5 * (a + b);
         vecxd fx = get_chebyshev_nodes(a, b, n_);
 
         for (int i = 0; i < n_; ++i)
             fx[i] = f_(fx[i]);
 
-        vecxd coeffs = VLU_.solve(fx);
+        vecxd coeffs = VLU.solve(fx);
         double tail_energy = FGError::calc_error(coeffs, error_model_);
 
         if (tail_energy < tol_ || (b - a) < mw_) {
@@ -223,8 +222,8 @@ template <int n_, int table_size_> class FunctionGenerator {
             for (int i = 0; i < n_; ++i)
                 coeffs_.push_back(coeffstmp[i]);
         } else {
-            fit(a, m);
-            fit(m, b);
+            fit(a, m, VLU);
+            fit(m, b, VLU);
         }
     }
 
