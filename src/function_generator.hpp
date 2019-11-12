@@ -19,7 +19,7 @@ namespace py = pybind11;
 //! Namespace for error calculation helper functions.
 namespace FGError {
 //! Model used to calculate error in approximation the input function.
-enum ErrorModel : uint16_t { standard = 0, relative = 1};
+enum ErrorModel : uint16_t { standard = 0, relative = 1 };
 
 inline double standard_error(vecxd &coeffs) {
     double maxcoeff = 0.0;
@@ -71,6 +71,7 @@ implementation. See README for more information.
 in finding the appropriate Chebyshev subunit.
 */
 template <int n_, int table_size_> class FunctionGenerator {
+    // TODO: Add complex/vector function support
   public:
     //!  Default constructor for FunctionGenerator.
     //!
@@ -96,13 +97,12 @@ template <int n_, int table_size_> class FunctionGenerator {
     };
 
 #ifdef PYTHON_MODULE
-    FunctionGenerator(
-        py::function fpy, double a, double b, double tol = 1e-12,
-        double mw = 1e-15,
-        uint16_t error_model = FGError::ErrorModel::standard)
+    FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-12,
+                      double mw = 1e-15,
+                      uint16_t error_model = FGError::ErrorModel::standard)
         : a_(a), b_(b), tol_(tol), mw_(mw),
           scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
-          error_model_((FGError::ErrorModel) error_model) {
+          error_model_((FGError::ErrorModel)error_model) {
         f_ = [fpy](double x) { return fpy(x).cast<double>(); };
         init();
     };
@@ -137,7 +137,6 @@ template <int n_, int table_size_> class FunctionGenerator {
     const double mw_;
     const double scale_factor_;
 
-    Eigen::MatrixXd V_;
     Eigen::PartialPivLU<Eigen::MatrixXd> VLU_;
 
     std::vector<double> lbs_;
@@ -161,8 +160,8 @@ template <int n_, int table_size_> class FunctionGenerator {
     };
 
     void init() {
-        init_vandermonde();
-        VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V_);
+        Eigen::MatrixXd V = calc_vandermonde();
+        VLU_ = Eigen::PartialPivLU<Eigen::MatrixXd>(V);
 
         fit(a_, b_);
         init_lookup();
@@ -175,20 +174,22 @@ template <int n_, int table_size_> class FunctionGenerator {
         lbs_.push_back(b_);
     }
 
-    void init_vandermonde() {
-        V_.resize(n_, n_);
+    Eigen::MatrixXd calc_vandermonde() {
+        Eigen::MatrixXd V(n_, n_);
+
         vecxd x = get_chebyshev_nodes(-1, 1, n_);
         for (int j = 0; j < n_; ++j) {
-            V_(0, j) = 1;
-            V_(1, j) = x(j);
+            V(0, j) = 1;
+            V(1, j) = x(j);
         }
 
         for (int i = 2; i < n_; ++i) {
             for (int j = 0; j < n_; ++j) {
-                V_(i, j) = V_(i - 1, j) * 2 * x(j) - V_(i - 2, j);
+                V(i, j) = V(i - 1, j) * 2 * x(j) - V(i - 2, j);
             }
         }
-        V_ = V_.transpose().eval();
+        V = V.transpose().eval();
+        return V;
     }
 
     vecxd get_chebyshev_nodes(double lb, double ub, int order) {
