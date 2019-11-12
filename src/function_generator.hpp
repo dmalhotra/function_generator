@@ -10,8 +10,6 @@
 #include <pybind11/pybind11.h>
 #endif
 
-typedef Eigen::VectorXd vecxd;
-
 #ifdef PYTHON_MODULE
 namespace py = pybind11;
 #endif
@@ -20,26 +18,32 @@ namespace py = pybind11;
 namespace FGError {
 //! Model used to calculate error in approximation the input function.
 enum ErrorModel : uint16_t { standard = 0, relative = 1 };
+using Eigen::Dynamic;
+using Eigen::Matrix;
 
-inline double standard_error(vecxd &coeffs) {
+template <typename T>
+inline double standard_error(Matrix<T, Dynamic, 1> &coeffs) {
     double maxcoeff = 0.0;
     int n = coeffs.size();
     for (auto i = n - 2; i < n; ++i)
-        maxcoeff = std::max(fabs(coeffs[i]), maxcoeff);
+        maxcoeff = std::max(std::abs(coeffs[i]), maxcoeff);
 
-    return maxcoeff / std::max(1.0, fabs(coeffs[0]));
+    return maxcoeff / std::max(1.0, std::abs(coeffs[0]));
 }
 
-inline double relative_error(vecxd &coeffs) {
+template <typename T>
+inline double relative_error(Matrix<T, Dynamic, 1> &coeffs) {
     double maxcoeff = 0.0;
     int n = coeffs.size();
     for (auto i = n - 2; i < n; ++i)
-        maxcoeff = std::max(fabs(coeffs[i]), maxcoeff);
+        maxcoeff = std::max(std::abs(coeffs[i]), maxcoeff);
 
-    return maxcoeff / fabs(coeffs[0]);
+    return maxcoeff / std::abs(coeffs[0]);
 }
 
-inline double calc_error(vecxd &coeffs, ErrorModel error_model) {
+template <typename T>
+inline double calc_error(Matrix<T, Dynamic, 1> &coeffs,
+                         ErrorModel error_model) {
     switch (error_model) {
     case relative:
         return FGError::relative_error(coeffs);
@@ -70,8 +74,11 @@ implementation. See README for more information.
 @tparam table_size_ Number of elements in lookup table which is used to assist
 in finding the appropriate Chebyshev subunit.
 */
-template <int n_, int table_size_> class FunctionGenerator {
+template <int n_, int table_size_, typename T> class FunctionGenerator {
     // TODO: Add complex/vector function support
+    typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> FGmatrix;
+    typedef Eigen::Matrix<T, Eigen::Dynamic, 1> FGvec;
+
   public:
     //!  Default constructor for FunctionGenerator.
     //!
@@ -86,8 +93,8 @@ template <int n_, int table_size_> class FunctionGenerator {
     parameter.
     */
     FunctionGenerator(
-        std::function<double(double)> &f, double a, double b,
-        double tol = 1E-12, double mw = 1E-15,
+        std::function<T(double)> &f, double a, double b, double tol = 1E-12,
+        double mw = 1E-15,
         FGError::ErrorModel error_model = FGError::ErrorModel::standard)
         : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
           scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
@@ -119,7 +126,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     }
 #endif
 
-    double operator()(double x) {
+    T operator()(double x) {
         const int index = bisect_lookup(x);
         const double a = lbs_[index];
         const double b = lbs_[index + 1];
@@ -129,7 +136,7 @@ template <int n_, int table_size_> class FunctionGenerator {
     }
 
   private:
-    std::function<double(double)> f_;
+    std::function<T(double)> f_;
     const double a_;
     const double b_;
     const double tol_;
@@ -137,18 +144,18 @@ template <int n_, int table_size_> class FunctionGenerator {
     const double scale_factor_;
 
     std::vector<double> lbs_;
-    std::vector<double> coeffs_;
+    std::vector<T> coeffs_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
     const FGError::ErrorModel error_model_;
 
-    double chbevl(const double x, const double *c) {
+    T chbevl(const double x, const T *c) {
         const double x2 = 2 * x;
 
-        double c0 = c[0];
-        double c1 = c[1];
+        T c0 = c[0];
+        T c1 = c[1];
         for (int i = 2; i < n_; ++i) {
-            double tmp = c1;
+            T tmp = c1;
             c1 = c[i] - c0;
             c0 = tmp + c0 * x2;
         }
@@ -157,9 +164,8 @@ template <int n_, int table_size_> class FunctionGenerator {
     }
 
     void init() {
-        Eigen::MatrixXd V = calc_vandermonde();
-        Eigen::PartialPivLU<Eigen::MatrixXd> VLU =
-            Eigen::PartialPivLU<Eigen::MatrixXd>(V);
+        FGmatrix V = calc_vandermonde();
+        Eigen::PartialPivLU<FGmatrix> VLU = Eigen::PartialPivLU<FGmatrix>(V);
 
         fit(a_, b_, VLU);
         init_lookup();
@@ -172,10 +178,10 @@ template <int n_, int table_size_> class FunctionGenerator {
         lbs_.push_back(b_);
     }
 
-    Eigen::MatrixXd calc_vandermonde() {
-        Eigen::MatrixXd V(n_, n_);
+    FGmatrix calc_vandermonde() {
+        FGmatrix V(n_, n_);
 
-        vecxd x = get_chebyshev_nodes(-1, 1, n_);
+        auto x = get_chebyshev_nodes(-1, 1, n_);
         for (int j = 0; j < n_; ++j) {
             V(0, j) = 1;
             V(1, j) = x(j);
@@ -183,15 +189,15 @@ template <int n_, int table_size_> class FunctionGenerator {
 
         for (int i = 2; i < n_; ++i) {
             for (int j = 0; j < n_; ++j) {
-                V(i, j) = V(i - 1, j) * 2 * x(j) - V(i - 2, j);
+                V(i, j) = T(2) * V(i - 1, j) * x(j) - V(i - 2, j);
             }
         }
         V = V.transpose().eval();
         return V;
     }
 
-    vecxd get_chebyshev_nodes(double lb, double ub, int order) {
-        vecxd res(order);
+    Eigen::VectorXd get_chebyshev_nodes(double lb, double ub, int order) {
+        Eigen::VectorXd res(order);
         for (int k = 0; k < order; ++k)
             res[order - k - 1] =
                 0.5 * (lb + ub) +
@@ -200,19 +206,20 @@ template <int n_, int table_size_> class FunctionGenerator {
         return res;
     }
 
-    void fit(double a, double b, Eigen::PartialPivLU<Eigen::MatrixXd> &VLU) {
+    void fit(double a, double b, Eigen::PartialPivLU<FGmatrix> &VLU) {
         double m = 0.5 * (a + b);
-        vecxd fx = get_chebyshev_nodes(a, b, n_);
+        auto xvec = get_chebyshev_nodes(a, b, n_);
+        FGvec yvec(n_);
 
         for (int i = 0; i < n_; ++i)
-            fx[i] = f_(fx[i]);
+            yvec[i] = f_(xvec[i]);
 
-        vecxd coeffs = VLU.solve(fx);
-        double tail_energy = FGError::calc_error(coeffs, error_model_);
+        FGvec coeffs = VLU.solve(yvec);
+        double tail_energy = FGError::calc_error<T>(coeffs, error_model_);
 
         if (tail_energy < tol_ || (b - a) < mw_) {
             lbs_.push_back(a);
-            std::vector<double> coeffstmp(n_);
+            std::vector<T> coeffstmp(n_);
             // Reverse list for cache performance reasons
             for (int i = 0; i < n_; ++i)
                 coeffstmp[i] = coeffs[n_ - i - 1];
