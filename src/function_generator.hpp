@@ -3,12 +3,12 @@
 #include <eigen3/Eigen/Eigen>
 #include <eigen3/Eigen/LU>
 #include <functional>
-#include <iostream>
+#include <vector>
+
 #ifdef PYTHON_MODULE
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #endif
-#include <vector>
 
 typedef Eigen::VectorXd vecxd;
 
@@ -28,7 +28,7 @@ inline double standard_error(vecxd &coeffs) {
         maxcoeff = std::max(fabs(coeffs[i]), maxcoeff);
 
     return maxcoeff / std::max(1.0, fabs(coeffs[0]));
-};
+}
 
 inline double relative_error(vecxd &coeffs) {
     double maxcoeff = 0.0;
@@ -92,9 +92,8 @@ template <int n_, int table_size_> class FunctionGenerator {
         : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
           scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
           error_model_(error_model) {
-
         init();
-    };
+    }
 
 #ifdef PYTHON_MODULE
     FunctionGenerator(py::function fpy, double a, double b, double tol = 1e-12,
@@ -105,7 +104,7 @@ template <int n_, int table_size_> class FunctionGenerator {
           error_model_((FGError::ErrorModel)error_model) {
         f_ = [fpy](double x) { return fpy(x).cast<double>(); };
         init();
-    };
+    }
 
     py::array_t<double> arr_call(py::array_t<double> x) {
         auto xin = x.unchecked<1>();
@@ -117,7 +116,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         }
 
         return res;
-    };
+    }
 #endif
 
     double operator()(double x) {
@@ -127,7 +126,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         const double xinterp = 2 * (x - a) / (b - a) - 1.0;
 
         return chbevl(xinterp, &coeffs_[index * n_]);
-    };
+    }
 
   private:
     std::function<double(double)> f_;
@@ -155,7 +154,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         }
 
         return c1 + c0 * x;
-    };
+    }
 
     void init() {
         Eigen::MatrixXd V = calc_vandermonde();
@@ -246,7 +245,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         }
 
         return n1;
-    };
+    }
 
     int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
 
@@ -254,7 +253,7 @@ template <int n_, int table_size_> class FunctionGenerator {
         int table_index = (x - a_) * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
-    };
+    }
 };
 
 #endif
