@@ -74,7 +74,7 @@ implementation. See README for more information.
 @tparam table_size_ Number of elements in lookup table which is used to assist
 in finding the appropriate Chebyshev subunit.
 */
-template <int n_, int table_size_, typename T> class FunctionGenerator {
+template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator {
     // TODO: Add complex/vector function support
     typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> FGmatrix;
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> FGvec;
@@ -227,6 +227,12 @@ template <int n_, int table_size_, typename T> class FunctionGenerator {
             // append to single coeffs_ vector, for cache reasons.
             for (int i = 0; i < n_; ++i)
                 coeffs_.push_back(coeffstmp[i]);
+
+            // Require that number of subdivisions is less than maximum possible value in
+            // lookup table. If you are failing here, then use a domain of your function that
+            // is more well behaved.
+            assert((coeffs_.size() / n_ < UINT16_MAX) &&
+                   "Too many subdivisions. See comment here for details.");
         } else {
             fit(a, m, VLU);
             fit(m, b, VLU);
@@ -242,9 +248,9 @@ template <int n_, int table_size_, typename T> class FunctionGenerator {
         }
     }
 
-    int bisect_bracketed(double x, int n1, int n2) {
+    uint16_t bisect_bracketed(double x, int n1, int n2) {
         while (n2 - n1 > 1) {
-            const int m = n1 + (n2 - n1) / 2;
+            const uint16_t m = n1 + (n2 - n1) / 2;
             if (x < lbs_[m])
                 n2 = m;
             else
@@ -254,9 +260,9 @@ template <int n_, int table_size_, typename T> class FunctionGenerator {
         return n1;
     }
 
-    int bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
+    uint16_t bisect(double x) { return bisect_bracketed(x, 0, lbs_.size()); }
 
-    int bisect_lookup(double x) {
+    uint16_t bisect_lookup(double x) {
         int table_index = (x - a_) * scale_factor_;
         auto bisect_bounds = bounds_table_[table_index];
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
