@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "function_generator.hpp"
-#include <omp.h>
 
 #include <gsl/gsl_sf.h>
 
@@ -106,6 +105,20 @@ int main(int argc, char *argv[]) {
 
     std::cout << "RNG generation took " << time_span.count() << " seconds.\n";
 
+    using std::complex;
+    std::vector<func_t<complex<double>>> complex_funcs{
+        func_t<complex<double>>{
+            "logi", 1e-15, 1000,
+            [](complex<double> x) { return log(x * complex<double>(0, 1)); }},
+        func_t<complex<double>>{"sini", 0, 2 * M_PI, [](complex<double> x) {
+                                    return sin(x * complex<double>(0, 1));
+                                }}};
+
+    for (auto func : complex_funcs) {
+        std::cout << std::endl << func.name << std::endl;
+        timeit<8, 4096, complex<double>>(func, x);
+    }
+
     std::vector<func_t<double>> double_funcs{
         func_t<double>{"log", 1e-15, 1000, [](double x) { return log(x); }},
         func_t<double>{"gsl_sf_bessel_J0", 0, 100, gsl_sf_bessel_J0},
@@ -116,25 +129,21 @@ int main(int argc, char *argv[]) {
         func_t<double>{
             "gsl_sf_airy_Ai", -20, 5,
             [](double x) { return gsl_sf_airy_Ai(x, GSL_PREC_DOUBLE); }},
-        func_t<double>{"sin", 0, 2 * M_PI, [](double x) { return sin(x); }}};
+        func_t<double>{"sin", 0, 2 * M_PI, [](double x) { return sin(x); }},
+        func_t<double>{"LJ", 0.7, 5,
+                       [](double x) {
+                           double x6 = pow(x, 6);
+                           double x12 = x6 * x6;
+                           return -1.0 / x6 + 1.0 / x12;
+                       }},
+        func_t<double>{"1/sin", 1E-15, 2 * M_PI,
+                       [](double x) { return 1 / sin(x); }},
+    };
 
     for (auto func : double_funcs) {
         std::cout << std::endl << func.name << std::endl;
         timeit<8, 4096, double>(func, x);
     }
 
-    using std::complex;
-    std::vector<func_t<complex<double>>> complex_funcs{
-        func_t<complex<double>>{
-            "log", 1e-15, 1000,
-            [](complex<double> x) { return log(x * complex<double>(0, 1)); }},
-        func_t<complex<double>>{"sin", 0, 2 * M_PI, [](complex<double> x) {
-                                    return sin(x * complex<double>(0, 1));
-                                }}};
-
-    for (auto func : complex_funcs) {
-        std::cout << std::endl << func.name << std::endl;
-        timeit<8, 4096, complex<double>>(func, x);
-    }
     return 0;
 }
