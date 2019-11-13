@@ -93,13 +93,13 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
     parameter.
     */
     FunctionGenerator(
-        std::function<T(double)> &f, double a, double b, double tol = 1E-12,
+        std::function<T(double)> &fin, double a, double b, double tol = 1E-12,
         double mw = 1E-15,
         FGError::ErrorModel error_model = FGError::ErrorModel::standard)
-        : f_(f), a_(a), b_(b), tol_(tol), mw_(mw),
+        : a_(a), b_(b), tol_(tol), mw_(mw),
           scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
           error_model_(error_model) {
-        init();
+        init(fin);
     }
 
 #ifdef PYTHON_MODULE
@@ -109,8 +109,10 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         : a_(a), b_(b), tol_(tol), mw_(mw),
           scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
           error_model_((FGError::ErrorModel)error_model) {
-        f_ = [fpy](double x) { return fpy(x).cast<double>(); };
-        init();
+        std::function<T(double)> fin = [fpy](double x) {
+            return fpy(x).cast<double>();
+        };
+        init(fin);
     }
 
     py::array_t<double> arr_call(py::array_t<double> x) {
@@ -136,7 +138,6 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
     }
 
   private:
-    std::function<T(double)> f_;
     const double a_;
     const double b_;
     const double tol_;
@@ -163,11 +164,11 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         return c1 + c0 * x;
     }
 
-    void init() {
+    void init(std::function<T(double)> &f) {
         FGmatrix V = calc_vandermonde();
         Eigen::PartialPivLU<FGmatrix> VLU = Eigen::PartialPivLU<FGmatrix>(V);
 
-        fit(a_, b_, VLU);
+        fit(f, a_, b_, VLU);
         init_lookup();
 
         // Add one element to bounds_table to handle call on largest upper bound
@@ -206,13 +207,13 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         return res;
     }
 
-    void fit(double a, double b, Eigen::PartialPivLU<FGmatrix> &VLU) {
+    void fit(std::function<T(double)> &f, double a, double b, Eigen::PartialPivLU<FGmatrix> &VLU) {
         double m = 0.5 * (a + b);
         auto xvec = get_chebyshev_nodes(a, b, n_);
         FGvec yvec(n_);
 
         for (int i = 0; i < n_; ++i)
-            yvec[i] = f_(xvec[i]);
+            yvec[i] = f(xvec[i]);
 
         FGvec coeffs = VLU.solve(yvec);
         double tail_energy = FGError::calc_error<T>(coeffs, error_model_);
@@ -234,8 +235,8 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
             assert((coeffs_.size() / n_ < UINT16_MAX) &&
                    "Too many subdivisions. See comment here for details.");
         } else {
-            fit(a, m, VLU);
-            fit(m, b, VLU);
+            fit(f, a, m, VLU);
+            fit(f, m, b, VLU);
         }
     }
 
