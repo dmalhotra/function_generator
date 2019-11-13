@@ -18,12 +18,14 @@ template <typename T> struct func_t {
     std::string name;
     double low;
     double high;
-    std::function<T(double)> f;
+    T (*f)(double);
 };
 
 template <int n_, int table_size_, typename T>
 void timeit(func_t<T> func, std::vector<double> &xraw) {
-    FunctionGenerator<n_, table_size_, T> f(func.f, func.low, func.high, 1E-12);
+    std::function<T(double)> myfunctor = [func](double x) { return func.f(x); };
+    FunctionGenerator<n_, table_size_, T> f(myfunctor, func.low, func.high,
+                                            1E-12);
     const double range = func.high - func.low;
 
     std::vector<double> x = xraw;
@@ -105,31 +107,20 @@ int main(int argc, char *argv[]) {
 
     std::cout << "RNG generation took " << time_span.count() << " seconds.\n";
 
-    using std::complex;
-    std::vector<func_t<complex<double>>> complex_funcs{
-        func_t<complex<double>>{
-            "logi", 1e-15, 1000,
-            [](complex<double> x) { return log(x * complex<double>(0, 1)); }},
-        func_t<complex<double>>{"sini", 0, 2 * M_PI, [](complex<double> x) {
-                                    return sin(x * complex<double>(0, 1));
-                                }}};
-
-    for (auto func : complex_funcs) {
-        std::cout << std::endl << func.name << std::endl;
-        timeit<8, 4096, complex<double>>(func, x);
-    }
-
     std::vector<func_t<double>> double_funcs{
-        func_t<double>{"log", 1e-15, 1000, [](double x) { return log(x); }},
+        func_t<double>{"log", 1e-15, 1000,
+                       static_cast<double (*)(double)>(std::log)},
         func_t<double>{"gsl_sf_bessel_J0", 0, 100, gsl_sf_bessel_J0},
         func_t<double>{"gsl_sf_bessel_I0", 0, 100, gsl_sf_bessel_I0},
         func_t<double>{"std::erfc", -2, 2,
-                       [](double x) { return std::erfc(x); }},
-        func_t<double>{"std::erf", -2, 2, [](double x) { return std::erf(x); }},
+                       static_cast<double (*)(double)>(std::erfc)},
+        func_t<double>{"std::erf", -2, 2,
+                       static_cast<double (*)(double)>(std::erf)},
         func_t<double>{
             "gsl_sf_airy_Ai", -20, 5,
             [](double x) { return gsl_sf_airy_Ai(x, GSL_PREC_DOUBLE); }},
-        func_t<double>{"sin", 0, 2 * M_PI, [](double x) { return sin(x); }},
+        func_t<double>{"sin", 0, 2 * M_PI,
+                       static_cast<double (*)(double)>(std::sin)},
         func_t<double>{"LJ", 0.7, 5,
                        [](double x) {
                            double x6 = pow(x, 6);
