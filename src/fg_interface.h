@@ -1,15 +1,16 @@
 #include <inttypes.h>
 
 #ifdef __cplusplus
-typedef FunctionGenerator<8, 4096, double> *FGHandle;
 extern "C" {
-#else
-typedef struct FunctionGenerator *FGHandle;
 #endif
 
-FGHandle fg_init(double (*)(double), double, double, double, double, uint16_t);
-double fg_eval(FGHandle, double);
+void *fg_init_8_2048(double (*)(double), double, double, double, double,
+                     uint16_t);
+void *fg_init_8_4096(double (*)(double), double, double, double, double,
+                     uint16_t);
 
+double fg_eval(void *f, double x);
+void fg_delete(void *f);
 #ifdef __cplusplus
 }
 #endif
