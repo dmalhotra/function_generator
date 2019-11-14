@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-    void *f = fg_init_7_4096(log, 1E-15, 1000, 1E-12, 1E-15, 0);
+    fg_func test = fg_init_7_4096(log, 1E-15, 1000, 1E-12, 1E-15, 0);
 
     int n_el = 100000;
     gsl_rng *r = gsl_rng_alloc(gsl_rng_taus);
@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     double sum = 0.0;
     for (int i_loop = 0; i_loop < 5000; ++i_loop) {
         for (int i = 0; i < n_el; i++) {
-            sum += fg_eval_7_4096(f, x[i]);
+            sum += fg_eval(&test, x[i]);
         }
     }
     printf("%g\n", sum);
