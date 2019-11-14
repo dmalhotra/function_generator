@@ -105,15 +105,6 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         init(fin);
     }
 
-    FunctionGenerator(
-        cfunc_complex fin, double a, double b, double tol = 1E-12, double mw = 1E-15,
-        FGError::ErrorModel error_model = FGError::ErrorModel::standard)
-        : a_(a), b_(b), tol_(tol), mw_(mw),
-          scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
-          error_model_(error_model) {
-        init(fin);
-    }
-
     T operator()(double x) {
         const int index = bisect_lookup(x);
         const double a = lbs_[index];
@@ -150,7 +141,7 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         return c1 + c0 * x;
     }
 
-    void init(T (*f)(double)) {
+    void init(cfunc_double f) {
         FGmatrix V = calc_vandermonde();
         Eigen::PartialPivLU<FGmatrix> VLU = Eigen::PartialPivLU<FGmatrix>(V);
 
@@ -193,7 +184,7 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         return res;
     }
 
-    void fit(T (*f)(double), double a, double b, Eigen::PartialPivLU<FGmatrix> &VLU) {
+    void fit(cfunc_double f, double a, double b, Eigen::PartialPivLU<FGmatrix> &VLU) {
         double m = 0.5 * (a + b);
         auto xvec = get_chebyshev_nodes(a, b, n_);
         FGvec yvec(n_);
