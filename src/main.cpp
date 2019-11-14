@@ -14,6 +14,8 @@
 typedef std::chrono::high_resolution_clock clk;
 typedef std::chrono::duration<double> duration;
 
+extern template class FunctionGenerator<8, 4096, double>;
+
 template <typename T> struct func_t {
     std::string name;
     double low;
@@ -23,9 +25,7 @@ template <typename T> struct func_t {
 
 template <int n_, int table_size_, typename T>
 void timeit(func_t<T> func, std::vector<double> &xraw) {
-    std::function<T(double)> myfunctor = [func](double x) { return func.f(x); };
-    FunctionGenerator<n_, table_size_, T> f(myfunctor, func.low, func.high,
-                                            1E-12);
+    FunctionGenerator<n_, table_size_, T> f(func.f, func.low, func.high, 1E-12);
     const double range = func.high - func.low;
 
     std::vector<double> x = xraw;
