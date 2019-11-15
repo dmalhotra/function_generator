@@ -13,7 +13,7 @@ typedef std::complex<double> (*cfunc_complex)(double);
 //! Namespace for error calculation helper functions.
 namespace FGError {
 //! Model used to calculate error in approximation the input function.
-enum ErrorModel : uint16_t { standard = 0, relative = 1 };
+enum ErrorModel : int8_t { standard = 0, relative = 1 };
 using Eigen::Dynamic;
 using Eigen::Matrix;
 
