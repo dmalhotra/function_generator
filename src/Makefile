@@ -1,19 +1,25 @@
+CC = gcc
 CXX = g++
+F90 = gfortran
 
-shared : function_generator.hpp function_generator.hpp
+libfunction_generator.so : function_generator.hpp fg_interface.h fg_interface.cpp
 	$(CXX) -Wall -g -O3 -ffast-math -march=native -std=c++11 -shared -fPIC -I$(CONDA_PREFIX)/include -o libfunction_generator.so fg_interface.cpp -fpermissive
 
-main : function_generator.hpp main.cpp shared
-	$(CXX) -Wall -g -O3 -ffast-math -march=native -std=c++11 -I$(CONDA_PREFIX)/include -c main.cpp
-	$(CXX) main.o -o main -L$(CONDA_PREFIX)/lib -Wl,-rpath $(CONDA_PREFIX)/lib -lgsl -Wl,-rpath $(PWD) -L./ -lfunction_generator
+cpp_example : libfunction_generator.so cpp_example.cpp
+	$(CXX) -Wall -g -O3 -ffast-math -march=native -std=c++11 -I$(CONDA_PREFIX)/include -c cpp_example.cpp
+	$(CXX) cpp_example.o -o cpp_example -L$(CONDA_PREFIX)/lib -Wl,-rpath $(CONDA_PREFIX)/lib -lgsl -Wl,-rpath $(PWD) -L./ -lfunction_generator
 
-test : function_generator.hpp test.c fg_interface.cpp
-	$(CC) -Wall -g -O3 -ffast-math -march=native -I$(CONDA_PREFIX)/include -c test.c
-	$(CC) fg_interface.o test.o -lm -lstdc++ -o test -Wl,-rpath $(PWD) -L./ -lfunction_generator -lgsl
+c_example : libfunction_generator.so c_example.c
+	$(CC) -Wall -g -O3 -ffast-math -march=native -I$(CONDA_PREFIX)/include -c c_example.c
+	$(CC) c_example.o -lm -lstdc++ -o c_example -Wl,-rpath $(PWD) -L./ -lfunction_generator -lgsl
 
+fortran_example : libfunction_generator.so fortran_example.f90
+	$(F90) -Wall -g -O3 -ffast-math -march=native -c fg_interface.f90
+	$(F90) -Wall -g -O3 -ffast-math -march=native -c fortran_example.f90
+	$(F90) fg_interface.o fortran_example.o -o fortran_example -Wl,-rpath $(PWD) -L./ -lfunction_generator
 
 all :
-	make main
+	make cpp_example c_example fortran_example
 
 clean :
-	rm -f *.so main
+	rm -f *.so *.o *.mod cpp_example c_example fortran_example
