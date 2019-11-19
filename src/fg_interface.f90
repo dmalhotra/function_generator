@@ -323,6 +323,96 @@ module function_generator
       type(fg_func) :: func
     end function fg_init_12_8192
 
+    function fg_init_13_512 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_13_512
+
+    function fg_init_13_1024 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_13_1024
+
+    function fg_init_13_2048 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_13_2048
+
+    function fg_init_13_4096 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_13_4096
+
+    function fg_init_13_8192 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_13_8192
+
+    function fg_init_14_512 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_14_512
+
+    function fg_init_14_1024 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_14_1024
+
+    function fg_init_14_2048 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_14_2048
+
+    function fg_init_14_4096 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_14_4096
+
+    function fg_init_14_8192 (fin, a, b, tol, mw, error_model) bind(c) result(func)
+      use, intrinsic :: iso_c_binding
+      import fg_func
+      type(c_funptr), intent(in), value :: fin
+      real(kind=c_double), intent(in), value :: a, b, tol, mw
+      integer(kind=c_int8_t), intent(in), value :: error_model
+      type(fg_func) :: func
+    end function fg_init_14_8192
+
     function fg_eval (f, x) result(y)
       use, intrinsic :: iso_c_binding
       import fg_func
@@ -332,5 +422,5 @@ module function_generator
     end function fg_eval
 
   end interface
-  
+
 end module function_generator

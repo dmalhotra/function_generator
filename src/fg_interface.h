@@ -151,6 +151,46 @@ fg_func fg_init_12_8192(double (*)(double), double, double, double, double, int8
 double fg_eval_12_8192(void *, double);
 void fg_delete_12_8192(void *);
 
+fg_func fg_init_13_512(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_13_512(void *, double);
+void fg_delete_13_512(void *);
+
+fg_func fg_init_13_1024(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_13_1024(void *, double);
+void fg_delete_13_1024(void *);
+
+fg_func fg_init_13_2048(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_13_2048(void *, double);
+void fg_delete_13_2048(void *);
+
+fg_func fg_init_13_4096(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_13_4096(void *, double);
+void fg_delete_13_4096(void *);
+
+fg_func fg_init_13_8192(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_13_8192(void *, double);
+void fg_delete_13_8192(void *);
+
+fg_func fg_init_14_512(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_14_512(void *, double);
+void fg_delete_14_512(void *);
+
+fg_func fg_init_14_1024(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_14_1024(void *, double);
+void fg_delete_14_1024(void *);
+
+fg_func fg_init_14_2048(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_14_2048(void *, double);
+void fg_delete_14_2048(void *);
+
+fg_func fg_init_14_4096(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_14_4096(void *, double);
+void fg_delete_14_4096(void *);
+
+fg_func fg_init_14_8192(double (*)(double), double, double, double, double, int8_t);
+double fg_eval_14_8192(void *, double);
+void fg_delete_14_8192(void *);
+
 #ifdef __cplusplus
 }
 #endif

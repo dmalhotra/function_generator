@@ -427,5 +427,125 @@ double fg_eval_12_8192(void *f, double x) {
 }
 void fg_delete_12_8192(void *f) { delete (FGHandle_12_8192)f; };
 
+typedef FunctionGenerator<13, 512, double> *FGHandle_13_512;
+fg_func fg_init_13_512(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<13, 512, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_13_512;
+    return res;
+}
+double fg_eval_13_512(void *f, double x) {
+    return (*(FGHandle_13_512)f)(x);
+}
+void fg_delete_13_512(void *f) { delete (FGHandle_13_512)f; };
+
+typedef FunctionGenerator<13, 1024, double> *FGHandle_13_1024;
+fg_func fg_init_13_1024(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<13, 1024, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_13_1024;
+    return res;
+}
+double fg_eval_13_1024(void *f, double x) {
+    return (*(FGHandle_13_1024)f)(x);
+}
+void fg_delete_13_1024(void *f) { delete (FGHandle_13_1024)f; };
+
+typedef FunctionGenerator<13, 2048, double> *FGHandle_13_2048;
+fg_func fg_init_13_2048(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<13, 2048, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_13_2048;
+    return res;
+}
+double fg_eval_13_2048(void *f, double x) {
+    return (*(FGHandle_13_2048)f)(x);
+}
+void fg_delete_13_2048(void *f) { delete (FGHandle_13_2048)f; };
+
+typedef FunctionGenerator<13, 4096, double> *FGHandle_13_4096;
+fg_func fg_init_13_4096(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<13, 4096, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_13_4096;
+    return res;
+}
+double fg_eval_13_4096(void *f, double x) {
+    return (*(FGHandle_13_4096)f)(x);
+}
+void fg_delete_13_4096(void *f) { delete (FGHandle_13_4096)f; };
+
+typedef FunctionGenerator<13, 8192, double> *FGHandle_13_8192;
+fg_func fg_init_13_8192(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<13, 8192, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_13_8192;
+    return res;
+}
+double fg_eval_13_8192(void *f, double x) {
+    return (*(FGHandle_13_8192)f)(x);
+}
+void fg_delete_13_8192(void *f) { delete (FGHandle_13_8192)f; };
+
+typedef FunctionGenerator<14, 512, double> *FGHandle_14_512;
+fg_func fg_init_14_512(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<14, 512, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_14_512;
+    return res;
+}
+double fg_eval_14_512(void *f, double x) {
+    return (*(FGHandle_14_512)f)(x);
+}
+void fg_delete_14_512(void *f) { delete (FGHandle_14_512)f; };
+
+typedef FunctionGenerator<14, 1024, double> *FGHandle_14_1024;
+fg_func fg_init_14_1024(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<14, 1024, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_14_1024;
+    return res;
+}
+double fg_eval_14_1024(void *f, double x) {
+    return (*(FGHandle_14_1024)f)(x);
+}
+void fg_delete_14_1024(void *f) { delete (FGHandle_14_1024)f; };
+
+typedef FunctionGenerator<14, 2048, double> *FGHandle_14_2048;
+fg_func fg_init_14_2048(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<14, 2048, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_14_2048;
+    return res;
+}
+double fg_eval_14_2048(void *f, double x) {
+    return (*(FGHandle_14_2048)f)(x);
+}
+void fg_delete_14_2048(void *f) { delete (FGHandle_14_2048)f; };
+
+typedef FunctionGenerator<14, 4096, double> *FGHandle_14_4096;
+fg_func fg_init_14_4096(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<14, 4096, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_14_4096;
+    return res;
+}
+double fg_eval_14_4096(void *f, double x) {
+    return (*(FGHandle_14_4096)f)(x);
+}
+void fg_delete_14_4096(void *f) { delete (FGHandle_14_4096)f; };
+
+typedef FunctionGenerator<14, 8192, double> *FGHandle_14_8192;
+fg_func fg_init_14_8192(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {
+    fg_func res;
+    res.obj = (void *)new FunctionGenerator<14, 8192, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);
+    res.eval = &fg_eval_14_8192;
+    return res;
+}
+double fg_eval_14_8192(void *f, double x) {
+    return (*(FGHandle_14_8192)f)(x);
+}
+void fg_delete_14_8192(void *f) { delete (FGHandle_14_8192)f; };
+
 
 }

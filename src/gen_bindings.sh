@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+N_ARR=(6 7 8 9 10 11 12 13 14)
+TABLE_SIZE_ARR=(512 1024 2048 4096 8192)
+
+
 cat >./fg_interface.h <<EOL
 #include <inttypes.h>
 
@@ -16,8 +20,8 @@ inline double fg_eval(fg_func *func, double x) { return func->eval(func->obj, x)
 
 EOL
 
-for n in {6..12}; do
-    for table_size in 512 1024 2048 4096 8192; do
+for n in ${N_ARR[@]}; do
+    for table_size in ${TABLE_SIZE_ARR[@]}; do
         printf "fg_func fg_init_${n}_${table_size}(double (*)(double), double, double, double, double, int8_t);\n" >> fg_interface.h
         printf "double fg_eval_${n}_${table_size}(void *, double);\n" >> fg_interface.h
         printf "void fg_delete_${n}_${table_size}(void *);\n\n" >> fg_interface.h
@@ -42,8 +46,8 @@ double fg_eval_(fg_func *func, double x) {
 
 EOL
 
-for n in {6..12}; do
-    for table_size in 512 1024 2048 4096 8192; do
+for n in ${N_ARR[@]}; do
+    for table_size in ${TABLE_SIZE_ARR[@]}; do
         printf "typedef FunctionGenerator<${n}, ${table_size}, double> *FGHandle_${n}_${table_size};\n" >> fg_interface.cpp
         printf "fg_func fg_init_${n}_${table_size}(double (*fin)(double), double a, double b, double tol, double mw, int8_t error_model) {\n" >> fg_interface.cpp
         printf "    fg_func res;\n" >> fg_interface.cpp
@@ -77,8 +81,8 @@ module function_generator
   interface
 EOL
 
-for n in {6..12}; do
-    for table_size in 512 1024 2048 4096 8192; do
+for n in ${N_ARR[@]}; do
+    for table_size in ${TABLE_SIZE_ARR[@]}; do
         printf "    function fg_init_${n}_${table_size} (fin, a, b, tol, mw, error_model) bind(c) result(func)\n" >> fg_interface.f90
         printf "      use, intrinsic :: iso_c_binding\n" >> fg_interface.f90
         printf "      import fg_func\n" >> fg_interface.f90
