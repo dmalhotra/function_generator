@@ -5,6 +5,7 @@ module function_generator
   type, bind(c) :: fg_func
     type(c_ptr) :: obj
     type(c_ptr) :: eval
+    type(c_ptr) :: free
   end type fg_func
 
   interface
@@ -420,7 +421,6 @@ module function_generator
       real(kind=c_double), intent(in), value :: x
       real(kind=c_double) :: y
     end function fg_eval
-
   end interface
 
 end module function_generator

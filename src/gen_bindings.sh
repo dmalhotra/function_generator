@@ -14,9 +14,11 @@ extern "C" {
 typedef struct {
     void *obj;
     double (*eval)(void*, double);
+    void (*free)(void*);
 } fg_func;
 
 inline double fg_eval(fg_func *func, double x) { return func->eval(func->obj, x); };
+void fg_free(fg_func *func);
 
 EOL
 
@@ -24,7 +26,7 @@ for n in ${N_ARR[@]}; do
     for table_size in ${TABLE_SIZE_ARR[@]}; do
         printf "fg_func fg_init_${n}_${table_size}(double (*)(double), double, double, double, double, int8_t);\n" >> fg_interface.h
         printf "double fg_eval_${n}_${table_size}(void *, double);\n" >> fg_interface.h
-        printf "void fg_delete_${n}_${table_size}(void *);\n\n" >> fg_interface.h
+        printf "void fg_free_${n}_${table_size}(void *);\n\n" >> fg_interface.h
     done
 done
 
@@ -44,6 +46,17 @@ double fg_eval_(fg_func *func, double x) {
     return func->eval(func->obj, x);
 };
 
+void fg_free(fg_func *func) {
+    func->free(func->obj);
+    func->obj = nullptr;
+    func->eval = nullptr;
+    func->free = nullptr;
+};
+
+void fg_free_(fg_func *func) {
+    fg_free(func);
+};
+
 EOL
 
 for n in ${N_ARR[@]}; do
@@ -53,13 +66,14 @@ for n in ${N_ARR[@]}; do
         printf "    fg_func res;\n" >> fg_interface.cpp
         printf "    res.obj = (void *)new FunctionGenerator<${n}, ${table_size}, double>(fin, a, b, tol, mw, (FGError::ErrorModel) error_model);\n" >> fg_interface.cpp
         printf "    res.eval = &fg_eval_${n}_${table_size};\n" >> fg_interface.cpp
+        printf "    res.free = &fg_free_${n}_${table_size};\n" >> fg_interface.cpp
         printf "    return res;\n" >> fg_interface.cpp
         printf "}\n" >> fg_interface.cpp
 
         printf "double fg_eval_${n}_${table_size}(void *f, double x) {\n" >> fg_interface.cpp
         printf "    return (*(FGHandle_${n}_${table_size})f)(x);\n" >> fg_interface.cpp
         printf "}\n" >> fg_interface.cpp
-        printf "void fg_delete_${n}_${table_size}(void *f) { delete (FGHandle_${n}_${table_size})f; };\n\n" >> fg_interface.cpp
+        printf "void fg_free_${n}_${table_size}(void *f) { delete (FGHandle_${n}_${table_size})f; };\n\n" >> fg_interface.cpp
     done
 done
 
@@ -76,6 +90,7 @@ module function_generator
   type, bind(c) :: fg_func
     type(c_ptr) :: obj
     type(c_ptr) :: eval
+    type(c_ptr) :: free
   end type fg_func
 
   interface
@@ -103,7 +118,6 @@ cat <<EOT >> fg_interface.f90
       real(kind=c_double), intent(in), value :: x
       real(kind=c_double) :: y
     end function fg_eval
-
   end interface
 
 end module function_generator

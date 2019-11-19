@@ -19,6 +19,8 @@ program main
   x = 0.5
   print *, fg_eval(myfun, x)
 
+  call fg_free(myfun)
+
 contains
   function log_wrapper (arg) bind(c) result(y)
     use, intrinsic :: iso_c_binding
