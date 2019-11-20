@@ -1,6 +1,6 @@
-CC = gcc
-CXX = g++
-F90 = gfortran
+CC ?= gcc
+CXX ?= g++
+F90 ?= gfortran
 
 CFLAGS+=-I$(CONDA_PREFIX)/include -Wall -g -flto -O3 -ffast-math -march=native
 LDFLAGS+=-L$(CONDA_PREFIX)/lib -Wl,-rpath $(CONDA_PREFIX)/lib -flto -O3
