@@ -56,13 +56,13 @@ The version as of writing this documentation has eight inputs.
    bindings. See below codes for examples of how to provide input functions.
 4. `low`, the lower bound of your input domain.
 5. `high`, the upper bound of your input domain.
-6. `tol`, the desired accuracy of your function. See main (README)[../README.md] of parent
+6. `tol`, the desired accuracy of your function. See main [README](../README.md) of parent
    project for more details.
 7. `minimum_width`, the minimum width for an allowed sub-division. If this is exceeded during
    initialization, the program should abort and throw an error message.
 8. `error_model`, error model to use to judge if within `tol` parameter. Currently only
-   standard (0), and relative (0) are supported. See `README` of parent project for more on
-   this.
+   standard (0), and relative (0) are supported. See [README](../README.md) of parent project
+   for more on this.
 
 ### Dependencies
 The only dependency is `Eigen3`. The `C` example also requires `gsl`. If eigen is not in the
