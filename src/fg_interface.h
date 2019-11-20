@@ -10,7 +10,7 @@ typedef struct {
     void (*free)(void*);
 } fg_func;
 
-inline double fg_eval(fg_func *func, double x) { return func->eval(func->obj, x); };
+double fg_eval(fg_func *func, double x);
 void fg_free(fg_func *func);
 
 fg_func fg_init_6_512(double (*)(double), double, double, double, double, int8_t);

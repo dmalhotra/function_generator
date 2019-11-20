@@ -17,7 +17,7 @@ typedef struct {
     void (*free)(void*);
 } fg_func;
 
-inline double fg_eval(fg_func *func, double x) { return func->eval(func->obj, x); };
+double fg_eval(fg_func *func, double x);
 void fg_free(fg_func *func);
 
 EOL
@@ -41,7 +41,10 @@ cat >./fg_interface.cpp <<EOL
 #include "function_generator.hpp"
 
 extern "C" {
-// Fortran binding
+double fg_eval(fg_func *func, double x) {
+    return func->eval(func->obj, x);
+};
+
 double fg_eval_(fg_func *func, double x) {
     return func->eval(func->obj, x);
 };

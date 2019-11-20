@@ -2,7 +2,10 @@
 #include "function_generator.hpp"
 
 extern "C" {
-// Fortran binding
+double fg_eval(fg_func *func, double x) {
+    return func->eval(func->obj, x);
+};
+
 double fg_eval_(fg_func *func, double x) {
     return func->eval(func->obj, x);
 };
@@ -13,7 +16,6 @@ void fg_free(fg_func *func) {
     func->eval = nullptr;
     func->free = nullptr;
 };
-
 
 void fg_free_(fg_func *func) {
     fg_free(func);

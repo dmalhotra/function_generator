@@ -14,8 +14,6 @@
 typedef std::chrono::high_resolution_clock clk;
 typedef std::chrono::duration<double> duration;
 
-extern template class FunctionGenerator<8, 4096, double>;
-
 template <typename T> struct func_t {
     std::string name;
     double low;

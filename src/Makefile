@@ -2,24 +2,26 @@ CC = gcc
 CXX = g++
 F90 = gfortran
 
-libfunction_generator.so : function_generator.hpp fg_interface.h fg_interface.cpp
-	$(CXX) -Wall -g -O3 -ffast-math -march=native -std=c++11 -shared -fPIC -I$(CONDA_PREFIX)/include -o libfunction_generator.so fg_interface.cpp -fpermissive
+CFLAGS+=-I$(CONDA_PREFIX)/include -flto -Wall -g -O3 -ffast-math -march=native
+LDFLAGS+=-L$(CONDA_PREFIX)/lib -flto -O3
 
-cpp_example : libfunction_generator.so cpp_example.cpp
-	$(CXX) -Wall -g -O3 -ffast-math -march=native -std=c++11 -I$(CONDA_PREFIX)/include -c cpp_example.cpp
-	$(CXX) cpp_example.o -o cpp_example -L$(CONDA_PREFIX)/lib -Wl,-rpath $(CONDA_PREFIX)/lib -lgsl -Wl,-rpath $(PWD) -L./ -lfunction_generator
+function_generator.o : function_generator.hpp fg_interface.h fg_interface.cpp
+	$(CXX) $(CFLAGS) -std=c++11 -c fg_interface.cpp -o function_generator.o
 
-c_example : libfunction_generator.so c_example.c
-	$(CC) -Wall -g -O3 -ffast-math -march=native -I$(CONDA_PREFIX)/include -c c_example.c
-	$(CC) c_example.o -lm -lstdc++ -o c_example -Wl,-rpath $(PWD) -L./ -lfunction_generator -lgsl
+cpp_example : cpp_example.cpp
+	$(CXX) $(CFLAGS) -std=c++11 -c cpp_example.cpp
+	$(CXX) cpp_example.o -o cpp_example $(LDFLAGS) -lgsl
 
-fortran_example : libfunction_generator.so fortran_example.f90
-	$(F90) -Wall -g -O3 -ffast-math -march=native -c fg_interface.f90
-	$(F90) -Wall -g -O3 -ffast-math -march=native -c fortran_example.f90
-	$(F90) fg_interface.o fortran_example.o -o fortran_example -Wl,-rpath $(PWD) -L./ -lfunction_generator
+c_example : function_generator.o c_example.c
+	$(CC) $(CFLAGS) -c c_example.c
+	$(CC) c_example.o function_generator.o -lm -lstdc++ -o c_example $(LDFLAGS) -lgsl
 
-all :
-	make cpp_example c_example fortran_example
+fortran_example : function_generator.o fortran_example.f90
+	$(F90) $(CFLAGS) -c fg_interface.f90
+	$(F90) $(CFLAGS) -c fortran_example.f90
+	$(F90) -o fortran_example function_generator.o fg_interface.o fortran_example.o -lstdc++ $(LDFLAGS)
+
+all : cpp_example c_example fortran_example
 
 clean :
-	rm -f *.so *.o *.mod cpp_example c_example fortran_example
+	rm -f *.o *.mod cpp_example c_example fortran_example

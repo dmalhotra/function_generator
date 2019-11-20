@@ -17,7 +17,7 @@ program main
 
   myfun = fg_init_8_4096(cproc, a, b, tol, mw, error_model)
   x = 0.5
-  print *, fg_eval(myfun, x)
+  print *, fg_eval(myfun, x) - log(x)
 
   call fg_free(myfun)
 
