@@ -2,8 +2,8 @@ CC = gcc
 CXX = g++
 F90 = gfortran
 
-CFLAGS+=-I$(CONDA_PREFIX)/include -flto -Wall -g -O3 -ffast-math -march=native
-LDFLAGS+=-L$(CONDA_PREFIX)/lib -flto -O3
+CFLAGS+=-I$(CONDA_PREFIX)/include -Wall -g -flto -O3 -ffast-math -march=native
+LDFLAGS+=-L$(CONDA_PREFIX)/lib -Wl,-rpath $(CONDA_PREFIX)/lib -flto -O3
 
 function_generator.o : function_generator.hpp fg_interface.h fg_interface.cpp
 	$(CXX) $(CFLAGS) -std=c++11 -c fg_interface.cpp -o function_generator.o
