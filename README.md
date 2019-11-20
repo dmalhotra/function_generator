@@ -2,7 +2,7 @@
 
 Special functions are typically slow and have implementations that are not compatible with numba's jit compiler.  This package constructs *approximations* of functions with tunable accuracy, and provides functions for rapidly evaluating these approximations which are compatible with numba. The approximations are built with Chebyshev series, and the domain is subdivided where needed; providing stable approximations that can be accurate to nearly machine precision. For functions where the number of approximation intervals needed is relatively small, the speed of evaluating the approximation can approach native functions; for example an approximation of np.log valid on the interval [1e-10, 1000] is as fast at evaluation as the Intel SVML implementaiton of log.
 
-This `README` is for the `python` version of the package. There is a sub-package for `C++/C/fortran` version in the `src` directory [here](src/).
+This `README` is for the `python` version of the package. There is a sub-package for `C++/C/fortran` version in the `src` directory [here](src/README.md).
 
 Constructing a function to approximate a given function on the interval [a,b] is as easy as:
 ```python
