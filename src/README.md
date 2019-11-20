@@ -7,18 +7,18 @@ please don't hesitate to include a pull request, create an issue, or contact me 
 if you find this project useful at all, please let me know.
 
 ## About the project
-I originally developed this project to speed up @dbstein's excellent `python` FunctionGenerator
-package, which this project has been forked from. This fork resulted in some algorithmic
-improvements to both of our packages, but ultimately the statically generated `C++` code could
-not typically compete with `numba`. This is most likely due to the `llvm` `jit` compiler in
-numba having more information at compile time than can be provided in a statically compiled
-language such as `C++`. This is almost entirely alleviated by the, at first glance, bizarre
-choice to template some of the parameters of the class (expansion order and size of lookup
-table). This choice reduces the efficacy of python bindings by having to explicitly bind every
-variant of the class to a unique name (an issue that is shared by `fortran` and `C`). Given
-that the performance of the `C++` library is, at best, on par with the python variant, the
-python bindings were removed and instead the library is developed separately but with added
-`fortran` and `C` bindings.
+I originally developed this project to speed up dbstein's excellent `python`
+[FunctionGenerator](https://github.com/dbstein/function_generator) package, which this project
+has been forked from. This fork resulted in some algorithmic improvements to both of our
+packages, but ultimately the statically generated `C++` code could not typically compete with
+`numba`. This is most likely due to the `llvm` `jit` compiler in numba having more information
+at compile time than can be provided in a statically compiled language such as `C++`. This is
+almost entirely alleviated by the, at first glance, bizarre choice to template some of the
+parameters of the class (expansion order and size of lookup table). This choice reduces the
+efficacy of python bindings by having to explicitly bind every variant of the class to a unique
+name (an issue that is shared by `fortran` and `C`). Given that the performance of the `C++`
+library is, at best, on par with the python variant, the python bindings were removed and
+instead the library is developed separately but with added `fortran` and `C` bindings.
 
 ## How it works
 The algorithm is straight forward. During initialization, the `FunctionGenerator` attempts to
@@ -56,8 +56,8 @@ The version as of writing this documentation has eight inputs.
    bindings. See below codes for examples of how to provide input functions.
 4. `low`, the lower bound of your input domain.
 5. `high`, the upper bound of your input domain.
-6. `tol`, the desired accuracy of your function. See main `README` of parent project (directory
-   up from the current directory) for more details.
+6. `tol`, the desired accuracy of your function. See main (README)[../README.md] of parent
+   project for more details.
 7. `minimum_width`, the minimum width for an allowed sub-division. If this is exceeded during
    initialization, the program should abort and throw an error message.
 8. `error_model`, error model to use to judge if within `tol` parameter. Currently only
