@@ -48,7 +48,10 @@ The version as of writing this documentation has eight inputs.
    class, and varies linearly from 6 to 14 in the `C/fortran` bindings
 2. `table_size`, the number of elements in the lookup table to speed up the lookup
    process. This is a template parameter in the `C++` class, and is compiled for values in
-   powers of 2 from 512 to 8192 in the `C/fortran` bindings.
+   powers of 2 from 512 to 8192 in the `C/fortran` bindings. Performance will vary depending on
+   the function and computer architecture/calling pattern so trial and error is probably
+   best. The cache performance penalty of larger values is typically negligible, so 4096 or
+   8192 are typically fine.
 3. `fin`, an input function. A one dimension function that returns a `double` and takes a
    `double` as its sole input argument. It is templated in the `C++` version to return
    non-floating point values, but this is currently broken/unsupported. If it is needed, it
