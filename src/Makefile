@@ -5,6 +5,9 @@ F90 ?= gfortran
 CFLAGS+=-I$(CONDA_PREFIX)/include -Wall -g -flto -O3 -ffast-math -march=native
 LDFLAGS+=-L$(CONDA_PREFIX)/lib -Wl,-rpath $(CONDA_PREFIX)/lib -flto -O3
 
+CFLAGS+=-DHAVE_SCTL -std=c++11 -fopenmp -DSCTL_QUAD_T=__float128 -I../SCTL/include
+LDFLAGS+=-fopenmp
+
 function_generator.o : function_generator.hpp fg_interface.h fg_interface.cpp
 	$(CXX) $(CFLAGS) -std=c++11 -c fg_interface.cpp -o function_generator.o
 

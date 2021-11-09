@@ -61,9 +61,10 @@ void timeit(func_t<T> func, std::vector<double> &xraw) {
         clk::time_point start = clk::now();
 
         for (int irun = 0; irun < n_loops; ++irun) {
-            for (size_t i = 0; i < x.size(); ++i) {
-                res[i] = f(x[i]);
-            }
+            f.eval_batched_sorted(res, x);
+            //for (size_t i = 0; i < x.size(); ++i) {
+            //    res[i] = f(x[i]);
+            //}
         }
 
         clk::time_point finish = clk::now();
@@ -97,6 +98,7 @@ int main(int argc, char *argv[]) {
     std::vector<double> x(n_el);
     for (size_t i = 0; i < n_el; ++i)
         x[i] = dis(gen);
+    std::sort(x.begin(), x.end());
     clk::time_point finish = clk::now();
     duration time_span = std::chrono::duration_cast<duration>(finish - start);
 

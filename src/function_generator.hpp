@@ -5,6 +5,10 @@
 #include <functional>
 #include <vector>
 
+#ifdef HAVE_SCTL
+#include <sctl.hpp>
+#endif
+
 #ifdef __AVX__
 #include <immintrin.h>
 #endif
@@ -117,6 +121,57 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
 
     T operator()(double x) {
         return eval_xk(x);
+    }
+
+    void eval_batched_sorted(std::vector<T>& fx, const std::vector<double>& x) {
+        const size_t N = x.size();
+        if (fx.size() != N) fx.resize(N);
+
+        size_t i = 0;
+        if (n_ == 8) {
+          #ifdef HAVE_SCTL
+          constexpr int VLen = sctl::Vec<T>::Size();
+          const size_t N_ = N-(VLen-1);
+
+          auto forward_binary_search = [this,&x](const int index0, const size_t i_start, const size_t i_end, int step) {
+            while (i_start+step<i_end && bisect_lookup(x[i_start+step]) == index0) step *= 2;
+            step/=2;
+
+            size_t i = i_start;
+            for (; step>0; step/=2) {
+              if (i+step<i_end && bisect_lookup(x[i+step])==index0) i += step;
+            }
+            return i+1;
+          };
+
+          while (i < N_) {
+              const int index = bisect_lookup(x[i]);
+              size_t b = forward_binary_search(index, i, N_, VLen);
+
+              const auto c0 = sctl::Vec<T>(coeffs_new_[index * n_ + 0]);
+              const auto c1 = sctl::Vec<T>(coeffs_new_[index * n_ + 1]);
+              const auto c2 = sctl::Vec<T>(coeffs_new_[index * n_ + 2]);
+              const auto c3 = sctl::Vec<T>(coeffs_new_[index * n_ + 3]);
+              const auto c4 = sctl::Vec<T>(coeffs_new_[index * n_ + 4]);
+              const auto c5 = sctl::Vec<T>(coeffs_new_[index * n_ + 5]);
+              const auto c6 = sctl::Vec<T>(coeffs_new_[index * n_ + 6]);
+              const auto c7 = sctl::Vec<T>(coeffs_new_[index * n_ + 7]);
+              const auto x0 = sctl::Vec<T>(exp_centers_[index]);
+
+              for (size_t j = i; j < b; j+= VLen) {
+                const auto x1 = sctl::Vec<T>::Load(&x[j]) - x0;
+                const auto x2 = x1*x1;
+                const auto x4 = x2*x2;
+                const auto fx_ = FMA(x4, FMA(x2, FMA(x1, c7, c3), FMA(x1, c6, c2)), FMA(x2, FMA(x1, c5, c1), FMA(x1, c4, c0)));
+                fx_.Store(&fx[j]);
+              }
+              i = b;
+          }
+          #endif
+        }
+        for (; i < N; i++) {
+            fx[i] = (*this)(x[i]);
+        }
     }
 
   private:
