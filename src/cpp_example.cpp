@@ -30,23 +30,15 @@ void timeit(func_t<T> func, std::vector<double> &xraw) {
     for (auto &xel : x)
         xel = xel * range + func.low;
 
-    std::cout << "First 5 test value deltas\n";
-    for (auto i = 0; i < 5; ++i) {
-        T yExp = f(x[i]);
-        T yLib = func.f(x[i]);
-        std::cout << "\t" << std::abs((yExp - yLib) / std::abs(yLib))
-                  << std::endl;
-    }
-
     int n_loops = 10;
-    std::vector<T> res(x.size());
+    std::vector<T> res(x.size()), ref(x.size());
 
     {
         clk::time_point start = clk::now();
 
         for (int irun = 0; irun < n_loops; ++irun) {
             for (size_t i = 0; i < x.size(); ++i) {
-                res[i] = func.f(x[i]);
+                ref[i] = func.f(x[i]);
             }
         }
 
@@ -87,6 +79,11 @@ void timeit(func_t<T> func, std::vector<double> &xraw) {
             f_out << a << "\t" << f(a) << std::endl;
         }
     }
+
+    double max_err = 0;
+    for (size_t i = 0; i < x.size(); i++)
+        max_err = std::max(max_err, fabs(res[i]-ref[i])/fabs(ref[i]));
+    std::cout<<"Max relative error = "<<max_err<<'\n';
 }
 
 int main(int argc, char *argv[]) {
