@@ -91,15 +91,6 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
     @param error_model Which model to use to calculate error for 'tol'
     parameter.
     */
-    // FunctionGenerator(T(*fin)(double), double a, double b, double tol = 1E-12,
-    //     double mw = 1E-15,
-    //     FGError::ErrorModel error_model = FGError::ErrorModel::standard)
-    //     : a_(a), b_(b), tol_(tol), mw_(mw),
-    //       scale_factor_(table_size_ / (b_ - a_)), bounds_table_(table_size_),
-    //       error_model_(error_model) {
-    //     init(fin);
-    // }
-
     FunctionGenerator(
         cfunc_double fin, double a, double b, double tol = 1E-12, double mw = 1E-15,
         FGError::ErrorModel error_model = FGError::ErrorModel::standard)
