@@ -74,7 +74,7 @@ implementation. See README for more information.
 @tparam table_size_ Number of elements in lookup table which is used to assist
 in finding the appropriate Chebyshev subunit.
 */
-template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator {
+template <uint16_t n_, uint16_t table_size_, typename T = double> class FunctionGenerator {
     typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> FGmatrix;
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> FGvec;
 
