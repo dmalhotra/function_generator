@@ -100,17 +100,23 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         init(fin);
     }
 
-    T operator()(double x) {
-        //const int index = bisect_lookup(x);
-        //const double a = lbs_[index];
-        //const double b = lbs_[index + 1];
-        //const double xinterp = 2 * (x - a) / (b - a) - 1.0;
-        //return chbevl(xinterp, &coeffs_[index * n_]);
-
+    T eval_xk(double x) {
         const int index = bisect_lookup(x);
         const double x0 = exp_centers_[index];
         const double xinterp = x - x0;
         return polyeval(xinterp, &coeffs_new_[index * n_]);
+    }
+
+    T eval_cheb(double x) {
+        const int index = bisect_lookup(x);
+        const double a = lbs_[index];
+        const double b = lbs_[index + 1];
+        const double xinterp = 2 * (x - a) / (b - a) - 1.0;
+        return chbevl(xinterp, &coeffs_[index * n_]);
+    }
+
+    T operator()(double x) {
+        return eval_xk(x);
     }
 
   private:
@@ -302,5 +308,6 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         return bisect_bracketed(x, bisect_bounds.first, bisect_bounds.second);
     }
 };
+
 
 #endif
