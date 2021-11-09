@@ -5,6 +5,10 @@
 #include <functional>
 #include <vector>
 
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
+
 extern "C" {
 typedef double (*cfunc_double)(double);
 typedef std::complex<double> (*cfunc_complex)(double);
@@ -106,12 +110,16 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
     }
 
     T operator()(double x) {
-        const int index = bisect_lookup(x);
-        const double a = lbs_[index];
-        const double b = lbs_[index + 1];
-        const double xinterp = 2 * (x - a) / (b - a) - 1.0;
+        //const int index = bisect_lookup(x);
+        //const double a = lbs_[index];
+        //const double b = lbs_[index + 1];
+        //const double xinterp = 2 * (x - a) / (b - a) - 1.0;
+        //return chbevl(xinterp, &coeffs_[index * n_]);
 
-        return chbevl(xinterp, &coeffs_[index * n_]);
+        const int index = bisect_lookup(x);
+        const double x0 = exp_centers_[index];
+        const double xinterp = x - x0;
+        return polyeval(xinterp, &coeffs_new_[index * n_]);
     }
 
   private:
@@ -122,7 +130,9 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
     const double scale_factor_;
 
     std::vector<double> lbs_;
+    std::vector<double> exp_centers_;
     std::vector<T> coeffs_;
+    std::vector<T> coeffs_new_;
     std::vector<std::pair<uint16_t, uint16_t>> bounds_table_;
 
     const FGError::ErrorModel error_model_;
@@ -139,6 +149,35 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
         }
 
         return c1 + c0 * x;
+    }
+    T polyeval(const double x, const T *c) {
+        if (n_ == 8) {
+            #ifdef __AVX__
+            alignas(sizeof(double)*4) double y[4];
+            __m256d c0_ = _mm256_loadu_pd(c+0);
+            __m256d c1_ = _mm256_loadu_pd(c+4);
+            __m256d x_ = _mm256_set1_pd(x);
+            __m256d c0_c1x = _mm256_add_pd(c0_, _mm256_mul_pd(c1_, x_));
+            _mm256_store_pd(y, c0_c1x);
+
+            const double x2 = x*x;
+            const double x4 = x2*x2;
+            return (y[0] + y[1]*x2) + (y[2] + y[3]*x2)*x4;
+            #else
+            const double x2 = x*x;
+            const double x4 = x2*x2;
+            return (c[0]+c[4]*x + (c[1]+c[5]*x)*x2) + (c[2]+c[6]*x + (c[3]+c[7]*x)*x2) * x4;
+            #endif
+        } else { // generic n_
+            const double* c0_ = c;
+            const double* c1_ = c + n_/2;
+            double x2 = x*x, x_ = 1, sum = 0;
+            for (int i = 0; i < n_/2; i++) {
+                sum += (c0_[i] + c1_[i] * x) * x_;
+                x_ *= x2;
+            }
+            return sum;
+        }
     }
 
     void init(cfunc_double f) {
@@ -205,6 +244,32 @@ template <uint16_t n_, uint16_t table_size_, typename T> class FunctionGenerator
             // append to single coeffs_ vector, for cache reasons.
             for (int i = 0; i < n_; ++i)
                 coeffs_.push_back(coeffstmp[i]);
+
+            { // set coeff_new_
+              exp_centers_.push_back((a+b)*0.5);
+
+              auto getVandermonde = [this]() {
+                FGmatrix V(n_, n_);
+                auto x = get_chebyshev_nodes(-1, 1, n_);
+                for (int i = 0; i < n_; ++i) {
+                    for (int j = 0; j < n_; ++j) {
+                        V(i, j) = pow(x(i),j);
+                    }
+                }
+                return V;
+              };
+              static const auto V = getVandermonde();
+              static const auto VLU = Eigen::PartialPivLU<FGmatrix>(V);
+
+              FGvec coeffs_new = VLU.solve(yvec);
+              for (int i = 0; i < n_; ++i)
+                  coeffs_new[i] *= pow((b-a)*0.5,-i); // include scaling here to avoid remapping xinterp to (-1,1)
+
+              // store even and odd coefficients separately for vectorization
+              static_assert(n_%2 == 0, "n_ must be even.");
+              for (int i = 0; i < n_/2; ++i) coeffs_new_.push_back(coeffs_new[i*2+0]);
+              for (int i = 0; i < n_/2; ++i) coeffs_new_.push_back(coeffs_new[i*2+1]);
+            }
 
             // Require that number of subdivisions is less than maximum possible value in
             // lookup table. If you are failing here, then use a domain of your function that
